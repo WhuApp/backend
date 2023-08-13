@@ -1,7 +1,7 @@
 import { authenticateUser } from '../auth';
 import { Env } from '../worker';
 
-export const fetch = async (request: Request, env: Env, endpoint: string) => {
+export const fetch = async (request: Request, env: Env, endpoint: string): Promise<Response> => {
 	switch (request.method) {
 		case 'POST': {
 			if (endpoint == 'add') {
@@ -20,5 +20,7 @@ export const fetch = async (request: Request, env: Env, endpoint: string) => {
 				return new Response(JSON.stringify(friendList), { status: 200 });
 			}
 		}
+		default:
+			throw new Error('Service not implemented');
 	}
 };
