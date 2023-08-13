@@ -1,3 +1,5 @@
+import { fetch as friendFetch } from './services/friends';
+
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
  *
@@ -23,10 +25,16 @@ export interface Env {
 	//
 	// Example binding to a Queue. Learn more at https://developers.cloudflare.com/queues/javascript-apis/
 	// MY_QUEUE: Queue;
+
+	FRIENDS_KV: KVNamespace;
 }
 
-export default {
-	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-		return new Response('Hello World!');
+export default <ExportedHandler<Env>>{
+	async fetch(request, env): Promise<Response> {
+		const url = new URL(request.url);
+		if (url.pathname.startsWith('/friends/v1/')) {
+			friendFetch(request, env, url.pathname.substring('/friends/v1/'.length));
+		}
+		throw new Error();
 	},
 };
