@@ -110,9 +110,9 @@ const requestAccept = async (
 	ownInRequests ??= (await env.REQUESTS_IN_KV.get(userId, 'json')) ?? [];
 
 	friendInRequests = friendInRequests.filter((x) => x != userId);
-	friendOutRequests = friendOutRequests.filter((x) => x != friendId);
+	friendOutRequests = friendOutRequests.filter((x) => x != userId);
 	ownInRequests = ownInRequests.filter((x) => x != friendId);
-	ownOutRequests = ownOutRequests.filter((x) => x != userId);
+	ownOutRequests = ownOutRequests.filter((x) => x != friendId);
 
 	await env.REQUESTS_IN_KV.put(friendId, JSON.stringify(friendInRequests));
 	await env.REQUESTS_IN_KV.put(userId, JSON.stringify(ownInRequests));
