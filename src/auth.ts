@@ -48,7 +48,7 @@ async function verifyToken(token: string): Promise<unknown> {
 export async function authenticateUser(headers: Headers): Promise<AuthObject> {
 	const auth = headers.get('Authorization');
 	if (auth === null) {
-		throw new Error();
+		throw new Error('no authorization');
 	}
 
 	const [scheme, token] = auth.split(' ');

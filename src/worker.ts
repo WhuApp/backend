@@ -35,6 +35,6 @@ export default <ExportedHandler<Env>>{
 		if (url.pathname.startsWith('/friends/v1/')) {
 			friendFetch(request, env, url.pathname.substring('/friends/v1/'.length));
 		}
-		throw new Error();
+		throw new Error('service not found');
 	},
 };
