@@ -1,4 +1,4 @@
-import { fetch as friendFetch } from './services/friends';
+import { default as friendFetch } from './services/friends';
 
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
@@ -25,8 +25,12 @@ export interface Env {
 	//
 	// Example binding to a Queue. Learn more at https://developers.cloudflare.com/queues/javascript-apis/
 	// MY_QUEUE: Queue;
+	AUTH0_TOKEN: string;
+	AUTH0_CLIENT_ID: string;
 
 	FRIENDS_KV: KVNamespace;
+	REQUESTS_IN_KV: KVNamespace;
+	REQUESTS_OUT_KV: KVNamespace;
 }
 
 export default <ExportedHandler<Env>>{
