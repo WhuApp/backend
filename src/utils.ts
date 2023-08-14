@@ -16,7 +16,7 @@ export const userExists = async (userId: string, env: Env): Promise<boolean> => 
 
 	const headers = new Headers();
 	headers.append('Accept', 'application/json');
-	headers.append('Authorization', body.token_type + ' ' + body.access_token);
+	headers.append('Authorization', `${body.token_type} ${body.access_token}`);
 
 	const requestOptions = {
 		method: 'GET',
@@ -33,6 +33,6 @@ export const userExists = async (userId: string, env: Env): Promise<boolean> => 
 		case 429:
 			throw new Error('Auth0 Ratelimit');
 		default:
-			throw new Error('Something went wrong. Auth0 statuscode: ' + (await auth0Response.text()));
+			throw new Error(`Auth0 error: ${await auth0Response.text()}`);
 	}
 };
