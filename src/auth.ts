@@ -23,7 +23,7 @@ function base64DecodeURL(b64urlstring: string) {
 
 async function verifyToken(token: string): Promise<unknown> {
 	const [meta, data, rsa] = token.split('.');
-	const to_hash = meta + '.' + data;
+	const toHash = meta + '.' + data;
 
 	const jwks: JWK[] = (
 		(await (await fetch(new Request('https://whuapp.eu.auth0.com/.well-known/jwks.json'), { cf: { cacheEverything: true } })).json()) as any
@@ -31,11 +31,9 @@ async function verifyToken(token: string): Promise<unknown> {
 
 	for (const jwk of jwks) {
 		const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: { name: 'sha-256' } }, false, ['verify']);
-		console.log(jwk, key, key.type);
-		const rsa_buffer = base64DecodeURL(rsa);
-		const to_hash_buffer = new TextEncoder().encode(to_hash);
-		const res = await crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, key, rsa_buffer, to_hash_buffer);
-		console.log(res);
+		const rsaBuffer = base64DecodeURL(rsa);
+		const toHashBuffer = new TextEncoder().encode(toHash);
+		const res = await crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, key, rsaBuffer, toHashBuffer);
 
 		if (res) {
 			return JSON.parse(new TextDecoder().decode(base64DecodeURL(data)));
@@ -48,16 +46,15 @@ async function verifyToken(token: string): Promise<unknown> {
 export async function authenticateUser(headers: Headers): Promise<AuthObject> {
 	const auth = headers.get('Authorization');
 	if (auth === null) {
-		throw new Error('no authorization');
+		throw new Error('Missing authorization header');
 	}
 
 	const [scheme, token] = auth.split(' ');
-	if (scheme === 'Bearer') {
-	} else {
-		throw new Error('Unknown Scheme ' + scheme);
+	if (scheme !== 'Bearer') {
+		throw new Error('Unknown Scheme: ' + scheme);
 	}
 
-	const token_obj = await verifyToken(token);
+	const tokenObject = await verifyToken(token);
 
-	return { userId: (token_obj as any).sub };
+	return { userId: (tokenObject as any).sub };
 }
