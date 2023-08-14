@@ -1,4 +1,4 @@
-import { Env } from './worker';
+import { Env } from './env';
 
 export const userExists = async (userId: string, env: Env): Promise<boolean> => {
 	const response = await fetch('https://whuapp.eu.auth0.com/oauth/token', {

@@ -1,6 +1,6 @@
 import { authenticateUser } from '../auth';
 import { userExists } from '../utils';
-import { Env } from '../worker';
+import { Env } from '../env';
 
 type FriendRequest = {
 	friendId: string;
