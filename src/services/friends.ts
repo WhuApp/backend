@@ -45,7 +45,7 @@ const requestSend = async (userId: string, friendId: string, env: Env): Promise<
 		return new Response('You cannot request yourself', { status: 400 });
 	}
 	if (!(await userExists(friendId, env))) {
-		return new Response('Other user not found', { status: 400 });
+		return new Response('Invalid Friend ID', { status: 400 });
 	}
 
 	const friendInRequests: string[] = (await env.REQUESTS_IN_KV.get(friendId, 'json')) ?? [];
@@ -76,7 +76,7 @@ const requestAccept = async (
 	ownOutRequests?: string[]
 ): Promise<Response> => {
 	if (!(await userExists(friendId, env))) {
-		return new Response('Other user not found', { status: 400 });
+		return new Response('Invalid Friend ID', { status: 400 });
 	}
 	const friendOutRequests: string[] = (await env.REQUESTS_OUT_KV.get(friendId, 'json')) ?? [];
 	if (!friendOutRequests.includes(userId)) {
@@ -102,10 +102,10 @@ const requestAccept = async (
 	friendInRequests ??= (await env.REQUESTS_IN_KV.get(friendId, 'json')) ?? [];
 	ownOutRequests ??= (await env.REQUESTS_OUT_KV.get(userId, 'json')) ?? [];
 
-	const friendInRequestsUpdated = friendInRequests.filter((x) => x != userId);
+	const friendInRequestsUpdated = friendInRequests!.filter((x) => x != userId);
 	const friendOutRequestsUpdated = friendOutRequests.filter((x) => x != userId);
 	const ownInRequestsUpdated = ownInRequests.filter((x) => x != friendId);
-	const ownOutRequestsUpdated = ownOutRequests.filter((x) => x != friendId);
+	const ownOutRequestsUpdated = ownOutRequests!.filter((x) => x != friendId);
 
 	await env.REQUESTS_IN_KV.put(friendId, JSON.stringify(friendInRequestsUpdated));
 	await env.REQUESTS_IN_KV.put(userId, JSON.stringify(ownInRequestsUpdated));
@@ -117,7 +117,7 @@ const requestAccept = async (
 
 const requestIgnore = async (userId: string, friendId: string, env: Env): Promise<Response> => {
 	if (!(await userExists(friendId, env))) {
-		return new Response('Other user not found', { status: 400 });
+		return new Response('Invalid Friend ID', { status: 400 });
 	}
 	const friendOutRequests: string[] = (await env.REQUESTS_OUT_KV.get(friendId, 'json')) ?? [];
 	if (!friendOutRequests.includes(userId)) {
