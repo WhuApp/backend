@@ -1,8 +1,6 @@
 import { Env } from './worker';
 
 export const userExists = async (userId: string, env: Env): Promise<boolean> => {
-	env.AUTH0_TOKEN;
-
 	const response = await fetch('https://whuapp.eu.auth0.com/oauth/token', {
 		method: 'POST',
 		headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -16,13 +14,13 @@ export const userExists = async (userId: string, env: Env): Promise<boolean> => 
 
 	const body: { token_type: string; access_token: string } = await response.json();
 
-	var myHeaders = new Headers();
-	myHeaders.append('Accept', 'application/json');
-	myHeaders.append('Authorization', body.token_type + ' ' + body.access_token);
+	const headers = new Headers();
+	headers.append('Accept', 'application/json');
+	headers.append('Authorization', body.token_type + ' ' + body.access_token);
 
-	var requestOptions = {
+	const requestOptions = {
 		method: 'GET',
-		headers: myHeaders,
+		headers: headers,
 		redirect: 'follow',
 	};
 
@@ -34,7 +32,7 @@ export const userExists = async (userId: string, env: Env): Promise<boolean> => 
 			return false;
 		case 429:
 			throw new Error('Auth0 Ratelimit');
-		default: // TODO: clarify error handling
+		default:
 			throw new Error('Something went wrong. Auth0 statuscode: ' + (await auth0Response.text()));
 	}
 };
