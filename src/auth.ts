@@ -26,14 +26,29 @@ async function verifyToken(token: string): Promise<unknown> {
 	const toHash = meta + '.' + data;
 
 	const jwks: JWK[] = (
-		(await (await fetch(new Request('https://whuapp.eu.auth0.com/.well-known/jwks.json'), { cf: { cacheEverything: true } })).json()) as any
+		(await (
+			await fetch(new Request('https://whuapp.eu.auth0.com/.well-known/jwks.json'), {
+				cf: { cacheEverything: true },
+			})
+		).json()) as any
 	).keys;
 
 	for (const jwk of jwks) {
-		const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: { name: 'sha-256' } }, false, ['verify']);
+		const key = await crypto.subtle.importKey(
+			'jwk',
+			jwk,
+			{ name: 'RSASSA-PKCS1-v1_5', hash: { name: 'sha-256' } },
+			false,
+			['verify']
+		);
 		const rsaBuffer = base64DecodeURL(rsa);
 		const toHashBuffer = new TextEncoder().encode(toHash);
-		const res = await crypto.subtle.verify({ name: 'RSASSA-PKCS1-v1_5' }, key, rsaBuffer, toHashBuffer);
+		const res = await crypto.subtle.verify(
+			{ name: 'RSASSA-PKCS1-v1_5' },
+			key,
+			rsaBuffer,
+			toHashBuffer
+		);
 
 		if (res) {
 			return JSON.parse(new TextDecoder().decode(base64DecodeURL(data)));
