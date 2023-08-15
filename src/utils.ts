@@ -1,6 +1,11 @@
 import { Env } from './env';
 
-export const userExists = async (userId: string, env: Env): Promise<boolean> => {
+type Auth0TokenResponse = {
+  token_type: string;
+  access_token: string;
+};
+
+export const userExists = async (id: string, env: Env): Promise<boolean> => {
   const response = await fetch('https://whuapp.eu.auth0.com/oauth/token', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -11,8 +16,7 @@ export const userExists = async (userId: string, env: Env): Promise<boolean> => 
       audience: 'https://whuapp.eu.auth0.com/api/v2/',
     }),
   });
-
-  const body: { token_type: string; access_token: string } = await response.json();
+  const body: Auth0TokenResponse = await response.json();
 
   const headers = new Headers();
   headers.append('Accept', 'application/json');
@@ -25,9 +29,10 @@ export const userExists = async (userId: string, env: Env): Promise<boolean> => 
   };
 
   const auth0Response = await fetch(
-    `https://whuapp.eu.auth0.com/api/v2/users/${userId}`,
+    `https://whuapp.eu.auth0.com/api/v2/users/${id}`,
     requestOptions
   );
+
   switch (auth0Response.status) {
     case 200:
       return true;

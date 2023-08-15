@@ -2,150 +2,166 @@ import { authenticateUser } from '../auth';
 import { userExists } from '../utils';
 import { Env } from '../env';
 
-type FriendRequest = {
+type FriendRequestPayload = {
   friendId: string;
 };
+
+type FriendRequest = {
+  from: string;
+  to: string;
+};
+
 export default async (request: Request, env: Env, subpath: string): Promise<Response> => {
+  const authContext = await authenticateUser(request.headers);
+  const senderId = authContext.userId;
+
   switch (request.method) {
     case 'POST': {
-      const authContext = await authenticateUser(request.headers);
-      const body: FriendRequest = await request.json();
+      const body: FriendRequestPayload = await request.json();
+      const exists = await userExists(body.friendId, env);
+      const friendRequest: FriendRequest = { from: senderId, to: body.friendId };
+
+      if (!exists) {
+        return new Response('Invalid Friend ID', { status: 400 });
+      }
+
       switch (subpath) {
         case 'request/send':
-          return await requestSend(authContext.userId, body.friendId, env);
+          return await sendRequest(friendRequest, env);
         case 'request/accept':
-          return await requestAccept(authContext.userId, body.friendId, env);
+          return await acceptRequest(friendRequest, env);
         case 'request/ignore':
-          return await requestIgnore(authContext.userId, body.friendId, env);
+          return await ignoreRequest(friendRequest, env);
       }
     }
+
     case 'GET': {
       switch (subpath) {
-        case 'list': {
-          const authContext = await authenticateUser(request.headers);
-          return await list(authContext.userId, env);
-        }
-        case 'requests/in/list': {
-          const authContext = await authenticateUser(request.headers);
-          return await requestInList(authContext.userId, env);
-        }
-        case 'requests/out/list': {
-          const authContext = await authenticateUser(request.headers);
-          return await requestOutList(authContext.userId, env);
-        }
+        case 'list':
+          return await listFriends(senderId, env);
+        case 'requests/in/list':
+          return await listIncoming(senderId, env);
+        case 'requests/out/list':
+          return await listOutgoing(senderId, env);
       }
     }
-    default:
-      throw new Error('Service not implemented');
   }
+
+  throw new Error('Service not implemented');
 };
 
-const requestSend = async (userId: string, friendId: string, env: Env): Promise<Response> => {
-  if (friendId === userId) {
+const sendRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
+  const { from, to } = request;
+
+  if (from === to) {
     return new Response('You cannot request yourself', { status: 400 });
   }
-  if (!(await userExists(friendId, env))) {
-    return new Response('Invalid Friend ID', { status: 400 });
+
+  const selfOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
+  const otherOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
+  const otherIncoming: string[] = (await env.REQUESTS_IN_KV.get(to, 'json')) ?? [];
+
+  if (!selfOutgoing.includes(to)) {
+    selfOutgoing.push(to);
+  }
+  if (!otherOutgoing.includes(from)) {
+    otherOutgoing.push(from);
   }
 
-  const friendInRequests: string[] = (await env.REQUESTS_IN_KV.get(friendId, 'json')) ?? [];
-  if (!friendInRequests.includes(userId)) {
-    friendInRequests.push(userId);
-  }
-  const ownOutRequests: string[] = (await env.REQUESTS_OUT_KV.get(userId, 'json')) ?? [];
-  if (!ownOutRequests.includes(friendId)) {
-    ownOutRequests.push(friendId);
-  }
+  await env.REQUESTS_IN_KV.put(to, JSON.stringify(otherIncoming));
+  await env.REQUESTS_OUT_KV.put(from, JSON.stringify(selfOutgoing));
 
-  await env.REQUESTS_IN_KV.put(friendId, JSON.stringify(friendInRequests));
-  await env.REQUESTS_OUT_KV.put(userId, JSON.stringify(ownOutRequests));
-
-  const friendOutRequest: string[] = (await env.REQUESTS_OUT_KV.get(friendId, 'json')) ?? [];
-  if (friendOutRequest.includes(userId)) {
-    return requestAccept(userId, friendId, env, friendInRequests, ownOutRequests);
+  // Accept request if it already exists
+  if (otherOutgoing.includes(from)) {
+    return acceptRequest(request, env, otherIncoming, otherOutgoing, selfOutgoing);
   }
 
   return new Response(undefined, { status: 201 });
 };
 
-const requestAccept = async (
-  userId: string,
-  friendId: string,
+const acceptRequest = async (
+  request: FriendRequest,
   env: Env,
-  friendInRequests?: string[],
-  ownOutRequests?: string[]
+  otherIncoming?: string[],
+  otherOutgoing?: string[],
+  selfOutgoing?: string[]
 ): Promise<Response> => {
-  if (!(await userExists(friendId, env))) {
-    return new Response('Invalid Friend ID', { status: 400 });
-  }
-  const friendOutRequests: string[] = (await env.REQUESTS_OUT_KV.get(friendId, 'json')) ?? [];
-  if (!friendOutRequests.includes(userId)) {
-    return new Response(`No pending request`, { status: 400 });
-  }
-  const ownInRequests: string[] = (await env.REQUESTS_IN_KV.get(userId, 'json')) ?? [];
-  if (!ownInRequests.includes(friendId)) {
-    return new Response(`Request expired`, { status: 400 });
+  const { from, to } = request;
+  const selfIncoming: string[] = (await env.REQUESTS_IN_KV.get(from, 'json')) ?? [];
+  const selfFriends: string[] = (await env.FRIENDS_KV.get(from, 'json')) ?? [];
+  const otherFriends: string[] = (await env.FRIENDS_KV.get(to, 'json')) ?? [];
+
+  if (!otherOutgoing) {
+    otherOutgoing = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
   }
 
-  const ownFriends: string[] = (await env.FRIENDS_KV.get(userId, 'json')) ?? [];
-  if (!ownFriends.includes(friendId)) {
-    ownFriends.push(friendId);
+  if (!otherOutgoing.includes(from)) {
+    return new Response('No pending request', { status: 400 });
   }
-  const friendFriends: string[] = (await env.FRIENDS_KV.get(friendId, 'json')) ?? [];
-  if (!friendFriends.includes(userId)) {
-    friendFriends.push(userId);
+  if (!selfIncoming.includes(to)) {
+    return new Response('Request invalid', { status: 400 });
   }
 
-  await env.FRIENDS_KV.put(userId, JSON.stringify(ownFriends));
-  await env.FRIENDS_KV.put(friendId, JSON.stringify(friendFriends));
+  if (!selfFriends.includes(to)) {
+    selfFriends.push(to);
+  }
+  await env.FRIENDS_KV.put(from, JSON.stringify(selfFriends));
 
-  friendInRequests ??= (await env.REQUESTS_IN_KV.get(friendId, 'json')) ?? [];
-  ownOutRequests ??= (await env.REQUESTS_OUT_KV.get(userId, 'json')) ?? [];
+  if (!otherFriends.includes(from)) {
+    otherFriends.push(from);
+  }
+  await env.FRIENDS_KV.put(to, JSON.stringify(otherFriends));
 
-  const friendInRequestsUpdated = friendInRequests!.filter((x) => x != userId);
-  const friendOutRequestsUpdated = friendOutRequests.filter((x) => x != userId);
-  const ownInRequestsUpdated = ownInRequests.filter((x) => x != friendId);
-  const ownOutRequestsUpdated = ownOutRequests!.filter((x) => x != friendId);
+  if (!selfOutgoing) {
+    selfOutgoing = (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
+  }
+  if (!otherIncoming) {
+    otherIncoming = (await env.REQUESTS_IN_KV.get(to, 'json')) ?? [];
+  }
 
-  await env.REQUESTS_IN_KV.put(friendId, JSON.stringify(friendInRequestsUpdated));
-  await env.REQUESTS_IN_KV.put(userId, JSON.stringify(ownInRequestsUpdated));
-  await env.REQUESTS_OUT_KV.put(friendId, JSON.stringify(friendOutRequestsUpdated));
-  await env.REQUESTS_OUT_KV.put(userId, JSON.stringify(ownOutRequestsUpdated));
+  // Remove request from friend
+  await env.REQUESTS_IN_KV.put(to, JSON.stringify(otherIncoming.filter((x) => x != from)));
+  await env.REQUESTS_OUT_KV.put(to, JSON.stringify(otherOutgoing.filter((x) => x != from)));
+  // Remove request from user
+  await env.REQUESTS_IN_KV.put(from, JSON.stringify(selfIncoming.filter((x) => x != to)));
+  await env.REQUESTS_OUT_KV.put(from, JSON.stringify(selfOutgoing.filter((x) => x != to)));
 
   return new Response(undefined, { status: 201 });
 };
 
-const requestIgnore = async (userId: string, friendId: string, env: Env): Promise<Response> => {
-  if (!(await userExists(friendId, env))) {
-    return new Response('Invalid Friend ID', { status: 400 });
-  }
-  const friendOutRequests: string[] = (await env.REQUESTS_OUT_KV.get(friendId, 'json')) ?? [];
-  if (!friendOutRequests.includes(userId)) {
-    return new Response(`No pending request`, { status: 400 });
-  }
-  const ownInRequests: string[] = (await env.REQUESTS_IN_KV.get(userId, 'json')) ?? [];
-  if (!ownInRequests.includes(friendId)) {
-    return new Response(`Request expired`, { status: 400 });
+const ignoreRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
+  const { from, to } = request;
+  const selfIncoming: string[] = (await env.REQUESTS_IN_KV.get(from, 'json')) ?? [];
+  const otherOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
+
+  if (!otherOutgoing.includes(from)) {
+    return new Response('No pending request', { status: 400 });
   }
 
-  const ownInRequestsUpdated = ownInRequests.filter((x) => x != friendId);
+  if (!selfIncoming.includes(to)) {
+    return new Response('Request expired', { status: 400 });
+  }
 
-  await env.REQUESTS_IN_KV.put(userId, JSON.stringify(ownInRequestsUpdated));
+  // Remove request
+  await env.REQUESTS_IN_KV.put(from, JSON.stringify(selfIncoming.filter((x) => x !== to)));
 
   return new Response(undefined, { status: 201 });
 };
 
-const list = async (userId: string, env: Env): Promise<Response> => {
-  const friendList: string[] = (await env.FRIENDS_KV.get(userId, 'json')) ?? [];
-  return new Response(JSON.stringify(friendList), { status: 200 });
+const listFriends = async (userId: string, env: Env): Promise<Response> => {
+  const friends: string[] = (await env.FRIENDS_KV.get(userId, 'json')) ?? [];
+
+  return new Response(JSON.stringify(friends), { status: 200 });
 };
 
-const requestInList = async (userId: string, env: Env): Promise<Response> => {
-  const ownInRequestss: string[] = (await env.REQUESTS_IN_KV.get(userId, 'json')) ?? [];
-  return new Response(JSON.stringify(ownInRequestss), { status: 200 });
+const listIncoming = async (userId: string, env: Env): Promise<Response> => {
+  const incoming: string[] = (await env.REQUESTS_IN_KV.get(userId, 'json')) ?? [];
+
+  return new Response(JSON.stringify(incoming), { status: 200 });
 };
 
-const requestOutList = async (userId: string, env: Env): Promise<Response> => {
-  const ownOutRequest: string[] = (await env.REQUESTS_OUT_KV.get(userId, 'json')) ?? [];
-  return new Response(JSON.stringify(ownOutRequest), { status: 200 });
+const listOutgoing = async (userId: string, env: Env): Promise<Response> => {
+  const outgoing: string[] = (await env.REQUESTS_OUT_KV.get(userId, 'json')) ?? [];
+
+  return new Response(JSON.stringify(outgoing), { status: 200 });
 };
