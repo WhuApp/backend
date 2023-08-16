@@ -1,11 +1,8 @@
 import { Env } from "./types";
 
-export default {
-  async fetch(
-    request: Request,
-    env: Env,
-    ctx: ExecutionContext,
-  ): Promise<Response> {
-    return new Response("Hello World!");
+export default <ExportedHandler<Env>> {
+  async fetch(request, env): Promise<Response> {
+    const url = new URL(request.url);
+    throw new Error();
   },
 };
