@@ -5,20 +5,21 @@ type Auth0TokenResponse = {
   access_token: string;
 };
 
-type Auth0UserResponse = {
-  user_id: string;
-  username: string;
-  name: string;
-  nickname: string;
-  given_name: string;
-  family_name: string;
-};
-
-class Auth0Error extends Error {
-  constructor(public code: number, message: string) {
-    super(message);
-  }
-}
+type Auth0UserResponse =
+  | {
+      success: true;
+      user_id: string;
+      username: string;
+      name: string;
+      nickname: string;
+      given_name: string;
+      family_name: string;
+    }
+  | {
+      success: false;
+      message: string;
+      statusCode: number;
+    };
 
 const fetchToken = async (env: Env): Promise<Auth0TokenResponse> => {
   const response = await fetch('https://whuapp.eu.auth0.com/oauth/token', {
@@ -50,23 +51,26 @@ export const fetchUser = async (id: string, env: Env): Promise<Auth0UserResponse
   const response = await fetch(`https://whuapp.eu.auth0.com/api/v2/users/${id}`, requestOptions);
 
   if (response.status === 200) {
-    // TODO: Add necessary data to user object
-    const data: Auth0UserResponse = await response.json();
-    return data;
+    const data: any = await response.json();
+
+    return {
+      ...data,
+      success: true,
+    };
   } else {
-    throw new Auth0Error(response.status, await response.text());
+    return {
+      success: false,
+      statusCode: response.status,
+      message: await response.text(),
+    };
   }
 };
 
 export const userExists = async (id: string, env: Env): Promise<boolean> => {
-  try {
-    await fetchUser(id, env);
-    return true;
-  } catch (reason: unknown) {
-    if (reason instanceof Auth0Error && reason.code === 404) {
-      return false;
-    }
+  const user = await fetchUser(id, env);
 
-    throw reason;
-  }
+  if (user.success) return true;
+  if (user.statusCode === 404) return false;
+
+  throw new Error(`Auth0Error: ${user.statusCode} ${user.message}`);
 };
