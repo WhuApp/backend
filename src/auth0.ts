@@ -49,8 +49,8 @@ export const fetchUserSearch = async (name: string, env: Env): Promise<string[]>
   headers.append('Authorization', `${token.token_type} ${token.access_token}`);
 
   const response = await fetch(
-    `https://whuapp.eu.auth0.com/api/v2/users/=search_engine=v3&q=${encodeURIComponent(
-      `username:"${name}"`
+    `https://whuapp.eu.auth0.com/api/v2/users?search_engine=v3&q=${encodeURIComponent(
+      `nickname:"${name}"`
     )}`,
     requestOptions
   );
