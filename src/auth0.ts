@@ -6,20 +6,20 @@ type Auth0TokenResponse = {
 };
 
 type Auth0UserResponse =
-  | {
+  | ({
       success: true;
-      user_id: string;
-      username: string;
-      name: string;
-      nickname: string;
-      given_name: string;
-      family_name: string;
-    }
+    } & Auth0User)
   | {
       success: false;
       message: string;
       statusCode: number;
     };
+
+type Auth0User = {
+  user_id: string;
+  email: string;
+  nickname: string;
+};
 
 const fetchToken = async (env: Env): Promise<Auth0TokenResponse> => {
   const response = await fetch('https://whuapp.eu.auth0.com/oauth/token', {
@@ -51,11 +51,12 @@ export const fetchUser = async (id: string, env: Env): Promise<Auth0UserResponse
   const response = await fetch(`https://whuapp.eu.auth0.com/api/v2/users/${id}`, requestOptions);
 
   if (response.status === 200) {
-    const data: any = await response.json();
-
+    const data: Auth0User = (await response.json()) as Auth0User;
     return {
-      ...data,
       success: true,
+      user_id: data.user_id,
+      email: data.email,
+      nickname: data.nickname,
     };
   } else {
     return {
