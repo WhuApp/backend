@@ -17,7 +17,12 @@ export default <ExportedHandler<Env>>{
 
       throw new Error();
     } catch (error) {
-      return new Response(JSON.stringify(error), { status: 500});
+      if (error.message) {
+        return new Response(error.message, { status: 500 });
+      }
+      else {
+        return new Response(JSON.stringify(error), { status: 500 });
+      }
     }
   },
 };
