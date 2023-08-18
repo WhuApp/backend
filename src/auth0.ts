@@ -52,6 +52,7 @@ export const fetchUser = async (id: string, env: Env): Promise<Auth0UserResponse
 
   if (response.status === 200) {
     const data: Auth0User = (await response.json()) as Auth0User;
+
     return {
       success: true,
       user_id: data.user_id,
