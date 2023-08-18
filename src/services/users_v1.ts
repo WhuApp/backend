@@ -1,6 +1,6 @@
 import { Env } from '../types';
 import { authenticateUser } from '../auth';
-import { fetchUser } from '../auth0';
+import { fetchUser, fetchUserSearch } from '../auth0';
 
 export default async (request: Request, env: Env, subpath: string): Promise<Response> => {
   const authContext = await authenticateUser(request.headers);
@@ -22,10 +22,20 @@ export default async (request: Request, env: Env, subpath: string): Promise<Resp
 
         return await dataById(id, env);
       }
+
+      if (subpath.startsWith('search/by-name/')) {
+        const name = subpath.split('/').slice(-1)[0];
+
+        return await searchByName(name, env);
+      }
     }
   }
 
   throw new Error('Service not implemented');
+};
+
+const searchByName = async (name: string, env: Env): Promise<Response> => {
+  return new Response(JSON.stringify(await fetchUserSearch(name, env)), { status: 200 });
 };
 
 const dataById = async (id: string, env: Env): Promise<Response> => {
