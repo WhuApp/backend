@@ -5,3 +5,18 @@ compatibility_date = "2023-08-07"
 [[routes]]
 pattern = "api.whu.app"
 custom_domain = true
+
+[[kv_namespaces]]
+binding = "FRIENDS_KV"
+id = "46e62bd0f1c14b5ea056caa4c3dddcc9"
+preview_id = "deb9a0c11d5844f7ae919dc8ecc4f915"
+
+[[kv_namespaces]]
+binding = "REQUESTS_IN_KV"
+id = "941cbd1c24284e93b34ee25e3d9f6bff"
+preview_id = "f72a8633644243e397626f150d78c752"
+
+[[kv_namespaces]]
+binding = "REQUESTS_OUT_KV"
+id = "bc2e9dbd5b2740a8bb18855c1c0c8896"
+preview_id = "8ebd561100074f60b9e714717cb4adcd"
