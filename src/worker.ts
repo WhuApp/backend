@@ -9,10 +9,10 @@ export default <ExportedHandler<Env>>{
 
       // TODO: Switch statement & endpoint constants
       if (url.pathname.startsWith('/friends/v1/')) {
-        return friendsFetch(request, env, url.pathname.substring('/friends/v1/'.length));
+        return await friendsFetch(request, env, url.pathname.substring('/friends/v1/'.length));
       }
       if (url.pathname.startsWith('/users/v1/')) {
-        return usersFetch(request, env, url.pathname.substring('/users/v1/'.length));
+        return await usersFetch(request, env, url.pathname.substring('/users/v1/'.length));
       }
 
       throw new Error();
