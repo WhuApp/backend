@@ -23,7 +23,7 @@ export default async (request: Request, env: Env, subpath: string): Promise<Resp
         return await dataById(id, env);
       }
 
-      if (subpath.startsWith('search/by-name/')) {
+      if (subpath.startsWith('search/by-nickname/')) {
         const name = subpath.split('/').slice(-1)[0];
 
         return await searchByName(name, env);
