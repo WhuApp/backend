@@ -14,7 +14,7 @@ export default async (request: Request, env: Env, subpath: string): Promise<Resp
       // TODO:  Is this user data public or are only friends
       //        allowed to receive it?
       if (subpath.startsWith('by-id/')) {
-        const id = subpath.split('/').slice(-1)[0];
+        const id = decodeURI(subpath.split('/').slice(-1)[0]);
 
         if (!id) {
           throw new Error('No user id provided');
