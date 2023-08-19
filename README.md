@@ -12,11 +12,13 @@ Base URL: `https://api.whu.app/`
   - Response: `string[]`
 - GET `/friends/v1/requests/in/list`
   - Response: `string[]`
-- POST `/friends/v1/request/send`
+- POST `/friends/v1/requests/send`
   - Payload: FriendRequestPayload
-- POST `/friends/v1/request/accept`
+- POST `/friends/v1/requests/accept`
   - Payload: FriendRequestPayload
-- POST `/friends/v1/request/ignore`
+- POST `/friends/v1/requests/ignore`
+  - Payload: FriendRequestPayload
+- POST `/friends/v1/remove'`
   - Payload: FriendRequestPayload
 
 ```ts
