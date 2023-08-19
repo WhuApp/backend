@@ -44,9 +44,7 @@ export default async (request: Request, env: Env, subpath: string): Promise<Resp
         const friends: string[] = (await env.FRIENDS_KV.get(senderId, 'json')) ?? [];
 
         if (!friends.includes(id)) {
-          console.log(id);
-          console.log(friends);
-          return new Response('No access');
+          return new Response('No access', { status: 401 });
         }
 
         return await dataById(id, env);
