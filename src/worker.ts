@@ -8,19 +8,25 @@ export default <ExportedHandler<Env>>{
     try {
       const url = new URL(request.url);
 
-      // TODO: Switch statement & endpoint constants
-      if (url.pathname.startsWith('/friends/v1/')) {
-        return await friendsFetch(request, env, url.pathname.substring('/friends/v1/'.length));
-      }
-      if (url.pathname.startsWith('/users/v1/')) {
-        return await usersFetch(request, env, url.pathname.substring('/users/v1/'.length));
-      }
-      if (url.pathname.startsWith('/locations/v1/')) {
-        return await locationsFetch(request, env, url.pathname.substring('/locations/v1/'.length));
+      const path: string[] = url.pathname.split('/').slice(1);
+      const service = path[0];
+      const version = path[1];
+      const subPath = url.pathname.substring(`/${service}/${version}/`.length);
+
+      switch (`/${service}/${version}/`) {
+        case '/friends/v1/': {
+          return await friendsFetch(request, env, subPath);
+        }
+        case '/friends/v1/': {
+          return await usersFetch(request, env, subPath);
+        }
+        case 'locations/v1/': {
+          return await locationsFetch(request, env, subPath);
+        }
       }
 
       throw new Error();
-    } catch (error) {
+    } catch (error: any) {
       if (error.message) {
         return new Response(error.message, { status: 500 });
       } else {
