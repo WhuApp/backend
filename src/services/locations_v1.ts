@@ -62,7 +62,7 @@ const storeData = async (request: LocationRequest, env: Env): Promise<Response> 
     throw new Response('Data wrong format', { status: 400 });
   }
 
-  if (Date.now() < location.timestamp) {
+  if (location.timestamp > Date.now()) {
     throw new Response('Invalid data', { status: 400 });
   }
 
