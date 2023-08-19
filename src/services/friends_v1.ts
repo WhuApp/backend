@@ -62,7 +62,6 @@ const sendRequest = async (request: FriendRequest, env: Env): Promise<Response> 
     return new Response('You cannot request yourself', { status: 400 });
   }
 
-  //please keep this ordering to safe unneccessary KV reads
   const selfFriends: string[] = (await env.FRIENDS_KV.get(from, 'json')) ?? [];
   if (selfFriends.includes(to)) {
     return new Response('You are already friends', { status: 400 });
@@ -87,7 +86,6 @@ const sendRequest = async (request: FriendRequest, env: Env): Promise<Response> 
 const acceptRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
   const { from, to } = request;
 
-  //please keep this ordering to safe unneccessary KV reads
   const otherOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
   if (!otherOutgoing.includes(from)) {
     return new Response('No pending request', { status: 400 });
@@ -107,7 +105,6 @@ const acceptRequest = async (request: FriendRequest, env: Env): Promise<Response
 const ignoreRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
   const { from, to } = request;
 
-  //please keep this ordering to safe unneccessary KV reads
   const otherOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
   if (!otherOutgoing.includes(from)) {
     return new Response('No pending request', { status: 400 });
@@ -118,7 +115,6 @@ const ignoreRequest = async (request: FriendRequest, env: Env): Promise<Response
     return new Response('Request expired', { status: 400 });
   }
 
-  // Remove request
   await env.REQUESTS_IN_KV.put(from, JSON.stringify(selfIncoming.filter((x) => x !== to)));
 
   return new Response(undefined, { status: 201 });
@@ -174,8 +170,7 @@ const addRequests = async (
   knownEntrys: KVEntrys
 ): Promise<boolean> => {
   const { from, to } = request;
-  var changed = false;
-  console.log('test');
+  let changed = false;
 
   const selfOutgoing: string[] =
     knownEntrys.selfOutgoing ?? (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
@@ -190,7 +185,6 @@ const addRequests = async (
   }
   if (!otherIncoming.includes(from)) {
     otherIncoming.push(from);
-    console.log(otherIncoming);
     await env.REQUESTS_IN_KV.put(to, JSON.stringify(otherIncoming));
     changed = true;
   }
