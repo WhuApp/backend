@@ -79,8 +79,7 @@ export const fetchUser = async (id: string, env: Env): Promise<Auth0UserResponse
   const response = await fetch(`https://whuapp.eu.auth0.com/api/v2/users/${id}`, requestOptions);
 
   if (response.status === 200) {
-    const data: Auth0User = (await response.json()) as Auth0User;
-
+    const data: Auth0User = await response.json();
     return {
       success: true,
       user_id: data.user_id,
