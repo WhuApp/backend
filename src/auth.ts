@@ -13,6 +13,7 @@ type JWK = {
 };
 
 function base64DecodeURL(b64urlstring: string) {
+  if (!b64urlstring) throw new Error("Undefined Base64");
   return new Uint8Array(
     atob(b64urlstring.replace(/-/g, '+').replace(/_/g, '/'))
       .split('')
@@ -24,6 +25,7 @@ function base64DecodeURL(b64urlstring: string) {
 
 async function verifyToken(token: string): Promise<unknown> {
   const [meta, data, rsa] = token.split('.');
+  if (!meta || !data || !rsa) throw new Error("Invalid JWT");
   const toHash = meta + '.' + data;
 
   const jwks: JWK[] = (
