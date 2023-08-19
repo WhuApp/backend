@@ -1,5 +1,5 @@
 import { Env } from './types';
-import friendsFetch from './services/friend_v1';
+import friendsFetch from './services/friends_v1';
 import usersFetch from './services/users_v1';
 
 export default <ExportedHandler<Env>>{
