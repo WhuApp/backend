@@ -1,10 +1,11 @@
 import { Env } from './types';
 import friendsFetch from './services/friends_v1';
 import usersFetch from './services/users_v1';
+import locationsFetch from './services/locations_v1';
 
 export default <ExportedHandler<Env>>{
   async fetch(request, env): Promise<Response> {
-    try{
+    try {
       const url = new URL(request.url);
 
       // TODO: Switch statement & endpoint constants
@@ -14,13 +15,15 @@ export default <ExportedHandler<Env>>{
       if (url.pathname.startsWith('/users/v1/')) {
         return await usersFetch(request, env, url.pathname.substring('/users/v1/'.length));
       }
+      if (url.pathname.startsWith('/locations/v1/')) {
+        return await locationsFetch(request, env, url.pathname.substring('/locations/v1/'.length));
+      }
 
       throw new Error();
     } catch (error) {
       if (error.message) {
         return new Response(error.message, { status: 500 });
-      }
-      else {
+      } else {
         return new Response(JSON.stringify(error), { status: 500 });
       }
     }

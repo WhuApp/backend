@@ -20,4 +20,5 @@ export interface Env {
   FRIENDS_KV: KVNamespace;
   REQUESTS_IN_KV: KVNamespace;
   REQUESTS_OUT_KV: KVNamespace;
+  LOCATION_KV: KVNamespace;
 }

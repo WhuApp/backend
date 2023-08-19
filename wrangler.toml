@@ -20,3 +20,8 @@ preview_id = "f72a8633644243e397626f150d78c752"
 binding = "REQUESTS_OUT_KV"
 id = "bc2e9dbd5b2740a8bb18855c1c0c8896"
 preview_id = "8ebd561100074f60b9e714717cb4adcd"
+
+[[kv_namespaces]]
+binding = "LOCATION_KV"
+id = "208747e1ea2c4f9b8a25a56197bae2db"
+preview_id = "822a949964274096b5ea869f252b6a3b"

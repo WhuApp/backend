@@ -13,13 +13,13 @@ Base URL: `https://api.whu.app/`
 - GET `/friends/v1/requests/in/list`
   - Response: `string[]`
 - POST `/friends/v1/requests/send`
-  - Payload: FriendRequestPayload
+  - Payload: `FriendRequestPayload`
 - POST `/friends/v1/requests/accept`
-  - Payload: FriendRequestPayload
+  - Payload: `FriendRequestPayload`
 - POST `/friends/v1/requests/ignore`
-  - Payload: FriendRequestPayload
-- POST `/friends/v1/remove'`
-  - Payload: FriendRequestPayload
+  - Payload: `FriendRequestPayload`
+- POST `/friends/v1/remove`
+  - Payload: `FriendRequestPayload`
 
 ```ts
 type FriendRequestPayload = {
@@ -41,5 +41,23 @@ type User = {
   user_id: string;
   email: string;
   nickname: string;
+};
+```
+
+### Locations
+
+- POST `/locations/v1/me`
+  - Payload: `TimedLocation`
+- GET `/locations/v1/me`
+  - Response: `TimedLocation`
+- GET `/locations/v1/by-id/{id}`
+  - Response: `TimedLocation`
+
+```ts
+type TimedLocation = {
+  latitude: number;
+  longitude: number;
+  altitude: number;
+  timestamp: number;
 };
 ```
