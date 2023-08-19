@@ -60,87 +60,53 @@ const sendRequest = async (request: FriendRequest, env: Env): Promise<Response> 
     return new Response('You cannot request yourself', { status: 400 });
   }
 
-  const selfOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
+  //please keep this ordering to safe unneccessary KV reads
+  const selfOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
+  if (selfOutgoing.includes(to)) {
+    return new Response('Request already exists', { status: 400 });
+  }
+
   const otherOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
-  const otherIncoming: string[] = (await env.REQUESTS_IN_KV.get(to, 'json')) ?? [];
-
-  if (!selfOutgoing.includes(to)) {
-    selfOutgoing.push(to);
-  }
-  if (!otherOutgoing.includes(from)) {
-    otherOutgoing.push(from);
-  }
-
-  await env.REQUESTS_IN_KV.put(to, JSON.stringify(otherIncoming));
-  await env.REQUESTS_OUT_KV.put(from, JSON.stringify(selfOutgoing));
-
-  // Accept request if it already exists
   if (otherOutgoing.includes(from)) {
-    return acceptRequest(request, env, otherIncoming, otherOutgoing, selfOutgoing);
+    removeRequests(request, env, { otherOutgoing });
+    addFriendship(request, env, { otherOutgoing });
+  } else {
+    addRequests(request, env, { otherOutgoing });
   }
 
   return new Response(undefined, { status: 201 });
 };
 
-const acceptRequest = async (
-  request: FriendRequest,
-  env: Env,
-  otherIncoming?: string[],
-  otherOutgoing?: string[],
-  selfOutgoing?: string[]
-): Promise<Response> => {
+const acceptRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
   const { from, to } = request;
-  const selfIncoming: string[] = (await env.REQUESTS_IN_KV.get(from, 'json')) ?? [];
-  const selfFriends: string[] = (await env.FRIENDS_KV.get(from, 'json')) ?? [];
-  const otherFriends: string[] = (await env.FRIENDS_KV.get(to, 'json')) ?? [];
 
-  if (!otherOutgoing) {
-    otherOutgoing = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
-  }
-
+  //please keep this ordering to safe unneccessary KV reads
+  const otherOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
   if (!otherOutgoing.includes(from)) {
     return new Response('No pending request', { status: 400 });
   }
+
+  const selfIncoming: string[] = (await env.REQUESTS_IN_KV.get(from, 'json')) ?? [];
   if (!selfIncoming.includes(to)) {
     return new Response('Request invalid', { status: 400 });
   }
 
-  if (!selfFriends.includes(to)) {
-    selfFriends.push(to);
-  }
-  await env.FRIENDS_KV.put(from, JSON.stringify(selfFriends));
-
-  if (!otherFriends.includes(from)) {
-    otherFriends.push(from);
-  }
-  await env.FRIENDS_KV.put(to, JSON.stringify(otherFriends));
-
-  if (!selfOutgoing) {
-    selfOutgoing = (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
-  }
-  if (!otherIncoming) {
-    otherIncoming = (await env.REQUESTS_IN_KV.get(to, 'json')) ?? [];
-  }
-
-  // Remove request from friend
-  await env.REQUESTS_IN_KV.put(to, JSON.stringify(otherIncoming.filter((x) => x != from)));
-  await env.REQUESTS_OUT_KV.put(to, JSON.stringify(otherOutgoing.filter((x) => x != from)));
-  // Remove request from user
-  await env.REQUESTS_IN_KV.put(from, JSON.stringify(selfIncoming.filter((x) => x != to)));
-  await env.REQUESTS_OUT_KV.put(from, JSON.stringify(selfOutgoing.filter((x) => x != to)));
+  addFriendship(request, env, { selfIncoming, otherOutgoing });
+  removeRequests(request, env, { selfIncoming, otherOutgoing });
 
   return new Response(undefined, { status: 201 });
 };
 
 const ignoreRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
   const { from, to } = request;
-  const selfIncoming: string[] = (await env.REQUESTS_IN_KV.get(from, 'json')) ?? [];
-  const otherOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
 
+  //please keep this ordering to safe unneccessary KV reads
+  const otherOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
   if (!otherOutgoing.includes(from)) {
     return new Response('No pending request', { status: 400 });
   }
 
+  const selfIncoming: string[] = (await env.REQUESTS_IN_KV.get(from, 'json')) ?? [];
   if (!selfIncoming.includes(to)) {
     return new Response('Request expired', { status: 400 });
   }
@@ -167,4 +133,147 @@ const listOutgoing = async (userId: string, env: Env): Promise<Response> => {
   const outgoing: string[] = (await env.REQUESTS_OUT_KV.get(userId, 'json')) ?? [];
 
   return new Response(JSON.stringify(outgoing), { status: 200 });
+};
+
+type KVEntrys = {
+  selfIncoming?: string[];
+  selfOutgoing?: string[];
+  selfFriends?: string[];
+  otherIncoming?: string[];
+  otherOutgoing?: string[];
+  otherFriends?: string[];
+};
+
+/**
+ * Guarantees that request is in the REQUEST_IN/OUT_KV
+ * @returns if some KV entrys changed
+ */
+const addRequests = async (
+  request: FriendRequest,
+  env: Env,
+  knownEntrys: KVEntrys
+): Promise<boolean> => {
+  const { from, to } = request;
+  var changed = false;
+
+  const selfOutgoing: string[] =
+    knownEntrys.selfOutgoing ?? (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
+  const otherIncoming: string[] =
+    knownEntrys.otherIncoming ?? (await env.REQUESTS_IN_KV.get(to, 'json')) ?? [];
+
+  if (!selfOutgoing.includes(to)) {
+    selfOutgoing.push(to);
+    await env.REQUESTS_OUT_KV.put(from, JSON.stringify(selfOutgoing));
+    changed = true;
+  }
+  if (!otherIncoming.includes(from)) {
+    otherIncoming.push(from);
+    await env.REQUESTS_IN_KV.put(to, JSON.stringify(otherIncoming));
+    changed = true;
+  }
+  return changed;
+};
+
+/**
+ * Guarantees that request is not in the REQUEST_IN/OUT_KV
+ * @returns if some KV entrys changed
+ */
+const removeRequests = async (
+  request: FriendRequest,
+  env: Env,
+  knownEntrys: KVEntrys
+): Promise<boolean> => {
+  const { from, to } = request;
+  var changed = false;
+
+  const selfIncoming: string[] =
+    knownEntrys.selfIncoming ?? (await env.REQUESTS_IN_KV.get(from, 'json')) ?? [];
+  const selfOutgoing: string[] =
+    knownEntrys.selfOutgoing ?? (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
+  const otherIncoming: string[] =
+    knownEntrys.otherIncoming ?? (await env.REQUESTS_IN_KV.get(to, 'json')) ?? [];
+  const otherOutgoing: string[] =
+    knownEntrys.otherOutgoing ?? (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
+
+  if (selfIncoming.includes(to)) {
+    await env.REQUESTS_OUT_KV.put(from, JSON.stringify(selfOutgoing.filter((x) => x != to)));
+    changed = true;
+  }
+  if (selfOutgoing.includes(to)) {
+    await env.REQUESTS_IN_KV.put(from, JSON.stringify(selfIncoming.filter((x) => x != to)));
+    changed = true;
+  }
+  if (otherIncoming.includes(from)) {
+    await env.REQUESTS_IN_KV.put(to, JSON.stringify(otherIncoming.filter((x) => x != from)));
+    changed = true;
+  }
+  if (otherOutgoing.includes(from)) {
+    await env.REQUESTS_OUT_KV.put(to, JSON.stringify(otherOutgoing.filter((x) => x != from)));
+    changed = true;
+  }
+  return changed;
+};
+
+/**
+ * Guarantees that request is in the FRIENDS_KV
+ * @returns if some KV entrys changed
+ */
+const addFriendship = async (
+  request: FriendRequest,
+  env: Env,
+  knownEntrys: KVEntrys
+): Promise<boolean> => {
+  const { from, to } = request;
+  var changed = false;
+
+  const selfFriends: string[] =
+    knownEntrys.selfFriends ?? (await env.FRIENDS_KV.get(from, 'json')) ?? [];
+  const otherFriends: string[] =
+    knownEntrys.otherFriends ?? (await env.FRIENDS_KV.get(to, 'json')) ?? [];
+
+  if (!selfFriends.includes(to)) {
+    selfFriends.push(to);
+    await env.FRIENDS_KV.put(from, JSON.stringify(selfFriends));
+    changed = true;
+  }
+
+  if (!otherFriends.includes(from)) {
+    otherFriends.push(from);
+    await env.FRIENDS_KV.put(to, JSON.stringify(otherFriends));
+    changed = true;
+  }
+
+  return changed;
+};
+
+const removeFrienship = async (
+  request: FriendRequest,
+  env: Env,
+  knownEntrys: KVEntrys
+): Promise<boolean> => {
+  const { from, to } = request;
+  var changed = false;
+
+  const selfFriends: string[] =
+    knownEntrys.selfFriends ?? (await env.FRIENDS_KV.get(from, 'json')) ?? [];
+  const otherFriends: string[] =
+    knownEntrys.otherFriends ?? (await env.FRIENDS_KV.get(to, 'json')) ?? [];
+
+  if (selfFriends.includes(to)) {
+    await env.FRIENDS_KV.put(
+      from,
+      JSON.stringify(JSON.stringify(selfFriends.filter((x) => x != to)))
+    );
+    changed = true;
+  }
+
+  if (otherFriends.includes(from)) {
+    await env.FRIENDS_KV.put(
+      to,
+      JSON.stringify(JSON.stringify(otherFriends.filter((x) => x != from)))
+    );
+    changed = true;
+  }
+
+  return changed;
 };
