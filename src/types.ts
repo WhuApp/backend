@@ -22,3 +22,8 @@ export interface Env {
   REQUESTS_OUT_KV: KVNamespace;
   LOCATION_KV: KVNamespace;
 }
+
+export interface Service {
+  fetch(request: Request, env: Env, subpath: string): Promise<Response>;
+  path: string;
+}
