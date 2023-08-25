@@ -1,27 +1,23 @@
-import { Env } from './types';
-import friendsFetch from './services/friends_v1';
-import usersFetch from './services/users_v1';
-import locationsFetch from './services/locations_v1';
+import { Env, Service } from './types';
+import * as services from './services';
 
 export default <ExportedHandler<Env>>{
   async fetch(request, env): Promise<Response> {
     try {
       const url = new URL(request.url);
+      const servicePath = `/${url.pathname.split("/").slice(1, 3).join("/")}/`
 
-      // TODO: Switch statement & endpoint constants
-      if (url.pathname.startsWith('/friends/v1/')) {
-        return await friendsFetch(request, env, url.pathname.substring('/friends/v1/'.length));
-      }
-      if (url.pathname.startsWith('/users/v1/')) {
-        return await usersFetch(request, env, url.pathname.substring('/users/v1/'.length));
-      }
-      if (url.pathname.startsWith('/locations/v1/')) {
-        return await locationsFetch(request, env, url.pathname.substring('/locations/v1/'.length));
-      }
+      const found = Object.values(services).filter(
+        (service: Service) => service.path === servicePath
+      )[0];
 
-      throw new Error();
-    } catch (error) {
-      if (error.message) {
+      if (found) {
+        return await found.fetch(request, env, url.pathname.substring(servicePath.length));
+      } else {
+        throw new Error('Service not found');
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
         return new Response(error.message, { status: 500 });
       } else {
         return new Response(JSON.stringify(error), { status: 500 });

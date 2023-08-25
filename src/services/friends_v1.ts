@@ -1,6 +1,6 @@
 import { authenticateUser } from '../auth';
 import { userExists } from '../auth0';
-import { Env } from '../types';
+import { Env, Service } from '../types';
 
 type FriendRequestPayload = {
   friendId: string;
@@ -11,48 +11,51 @@ type FriendRequest = {
   to: string;
 };
 
-export default async (request: Request, env: Env, subpath: string): Promise<Response> => {
-  const authContext = await authenticateUser(request.headers);
-  const senderId = authContext.userId;
+const FriendsV1: Service = {
+  path: '/friends/v1/',
+  fetch: async (request: Request, env: Env, subpath: string): Promise<Response> => {
+    const authContext = await authenticateUser(request.headers);
+    const senderId = authContext.userId;
 
-  switch (request.method) {
-    case 'POST': {
-      const body: FriendRequestPayload = await request.json();
-      const exists = await userExists(body.friendId, env);
-      const friendRequest: FriendRequest = {
-        from: senderId,
-        to: body.friendId,
-      };
+    switch (request.method) {
+      case 'POST': {
+        const body: FriendRequestPayload = await request.json();
+        const exists = await userExists(body.friendId, env);
+        const friendRequest: FriendRequest = {
+          from: senderId,
+          to: body.friendId,
+        };
 
-      if (!exists) {
-        return new Response('Invalid Friend ID', { status: 400 });
+        if (!exists) {
+          return new Response('Invalid Friend ID', { status: 400 });
+        }
+
+        switch (subpath) {
+          case 'requests/send':
+            return await sendRequest(friendRequest, env);
+          case 'requests/accept':
+            return await acceptRequest(friendRequest, env);
+          case 'requests/ignore':
+            return await ignoreRequest(friendRequest, env);
+          case 'remove':
+            return await removeFriend(friendRequest, env);
+        }
       }
 
-      switch (subpath) {
-        case 'requests/send':
-          return await sendRequest(friendRequest, env);
-        case 'requests/accept':
-          return await acceptRequest(friendRequest, env);
-        case 'requests/ignore':
-          return await ignoreRequest(friendRequest, env);
-        case 'remove':
-          return await removeFriend(friendRequest, env);
+      case 'GET': {
+        switch (subpath) {
+          case 'list':
+            return await listFriends(senderId, env);
+          case 'requests/in/list':
+            return await listIncoming(senderId, env);
+          case 'requests/out/list':
+            return await listOutgoing(senderId, env);
+        }
       }
     }
 
-    case 'GET': {
-      switch (subpath) {
-        case 'list':
-          return await listFriends(senderId, env);
-        case 'requests/in/list':
-          return await listIncoming(senderId, env);
-        case 'requests/out/list':
-          return await listOutgoing(senderId, env);
-      }
-    }
-  }
-
-  throw new Error('Service not implemented');
+    throw new Error('Service not implemented');
+  },
 };
 
 const sendRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
@@ -288,3 +291,5 @@ const deleteFrienship = async (
 
   return changed;
 };
+
+export default FriendsV1;

@@ -1,37 +1,41 @@
-import { Env } from '../types';
+import { Env, Service } from '../types';
 import { authenticateUser } from '../auth';
 import { fetchUser, fetchUserSearch } from '../auth0';
 
-export default async (request: Request, env: Env, subpath: string): Promise<Response> => {
-  const authContext = await authenticateUser(request.headers);
+const UsersV1 = {
+  path: '/users/v1/',
 
-  switch (request.method) {
-    case 'GET': {
-      if (subpath === 'me') {
-        return await dataById(authContext.userId, env);
-      }
+  fetch: async (request: Request, env: Env, subpath: string): Promise<Response> => {
+    const authContext = await authenticateUser(request.headers);
 
-      // TODO:  Is this user data public or are only friends
-      //        allowed to receive it?
-      if (subpath.startsWith('by-id/')) {
-        const id = decodeURI(subpath.split('/').slice(-1)[0]);
-
-        if (!id) {
-          throw new Error('No user id provided');
+    switch (request.method) {
+      case 'GET': {
+        if (subpath === 'me') {
+          return await dataById(authContext.userId, env);
         }
 
-        return await dataById(id, env);
-      }
+        // TODO:  Is this user data public or are only friends
+        //        allowed to receive it?
+        if (subpath.startsWith('by-id/')) {
+          const id = decodeURI(subpath.split('/').slice(-1)[0]);
 
-      if (subpath.startsWith('search/by-nickname/')) {
-        const name = subpath.split('/').slice(-1)[0];
+          if (!id) {
+            throw new Error('No user id provided');
+          }
 
-        return await searchByName(name, env);
+          return await dataById(id, env);
+        }
+
+        if (subpath.startsWith('search/by-nickname/')) {
+          const name = subpath.split('/').slice(-1)[0];
+
+          return await searchByName(name, env);
+        }
       }
     }
-  }
 
-  throw new Error('Service not implemented');
+    throw new Error('Service not implemented');
+  },
 };
 
 const searchByName = async (name: string, env: Env): Promise<Response> => {
@@ -54,3 +58,5 @@ const dataById = async (id: string, env: Env): Promise<Response> => {
 
   throw new Error(`Auth0Error: ${user.statusCode} ${user.message}`);
 };
+
+export default UsersV1;
