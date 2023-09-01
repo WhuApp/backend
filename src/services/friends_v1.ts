@@ -37,6 +37,8 @@ const FriendsV1: Service = {
             return await acceptRequest(friendRequest, env);
           case 'requests/ignore':
             return await ignoreRequest(friendRequest, env);
+          case 'request/cancel':
+            return await cancelRequest(friendRequest, env);
           case 'remove':
             return await removeFriend(friendRequest, env);
         }
@@ -120,7 +122,20 @@ const ignoreRequest = async (request: FriendRequest, env: Env): Promise<Response
 
   await env.REQUESTS_IN_KV.put(from, JSON.stringify(selfIncoming.filter((x) => x !== to)));
 
-  return new Response(undefined, { status: 201 });
+  return new Response(undefined, { status: 200 });
+};
+
+const cancelRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
+  const { from, to } = request;
+
+  const selfOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
+  if (!selfOutgoing.includes(to)) {
+    return new Response('No outgoing request', { status: 400 });
+  }
+
+  await deleteRequests(request, env, { selfOutgoing });
+
+  return new Response(undefined, { status: 200 });
 };
 
 const removeFriend = async (request: FriendRequest, env: Env): Promise<Response> => {
