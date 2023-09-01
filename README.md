@@ -18,6 +18,8 @@ Base URL: `https://api.whu.app/`
   - Payload: `FriendRequestPayload`
 - POST `/friends/v1/requests/ignore`
   - Payload: `FriendRequestPayload`
+- POST `/friends/v1/requests/cancel`
+  - Payload: `FriendRequestPayload`
 - POST `/friends/v1/remove`
   - Payload: `FriendRequestPayload`
 
