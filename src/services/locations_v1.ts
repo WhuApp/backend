@@ -1,6 +1,8 @@
 import { Env, Service } from '../types';
 import { authenticateUser } from '../auth';
 
+type LocationRequestPayload = TimedLocation;
+
 type LocationRequest = {
   timedLocation: TimedLocation;
   from: string;
@@ -18,38 +20,40 @@ const LocationV1: Service = {
   fetch: async (request: Request, env: Env, subpath: string): Promise<Response> => {
     const authContext = await authenticateUser(request.headers);
     const senderId = authContext.userId;
+    const pathSegments: string[] = subpath.split('/');
 
     switch (request.method) {
       case 'POST': {
-        switch (subpath) {
+        const body: LocationRequestPayload = await request.json();
+        const locationRequest: LocationRequest = {
+          from: senderId,
+          timedLocation: body,
+        };
+        switch (pathSegments[0]) {
           case 'me':
-            const body: TimedLocation = await request.json();
-            const locationRequest: LocationRequest = {
-              timedLocation: body,
-              from: senderId,
-            };
             return await storeData(locationRequest, env);
         }
       }
       case 'GET': {
-        if (subpath === 'me') {
-          return await dataById(senderId, env);
-        }
-
-        if (subpath.startsWith('by-id/')) {
-          const id = decodeURI(subpath.split('/').slice(-1)[0]);
-
-          if (!id) {
-            throw new Error('No user id provided');
+        switch (pathSegments[0]) {
+          case 'me': {
+            return await dataById(senderId, env);
           }
+          case 'by-id': {
+            const id = decodeURI(pathSegments[1]);
 
-          const friends: string[] = (await env.FRIENDS_KV.get(senderId, 'json')) ?? [];
+            if (!id) {
+              throw new Error('No user id provided');
+            }
 
-          if (!friends.includes(id)) {
-            return new Response('No access', { status: 401 });
+            const friends: string[] = (await env.FRIENDS_KV.get(senderId, 'json')) ?? [];
+
+            if (!friends.includes(id)) {
+              return new Response('No access', { status: 401 });
+            }
+
+            return await dataById(id, env);
           }
-
-          return await dataById(id, env);
         }
       }
     }
@@ -83,7 +87,7 @@ const storeData = async (request: LocationRequest, env: Env): Promise<Response> 
 };
 
 const dataById = async (id: string, env: Env): Promise<Response> => {
-  return new Response(await env.LOCATION_KV.get(id, 'text'), { status: 200 });
+  return Response.json(await env.LOCATION_KV.get(id, 'json'), { status: 200 });
 };
 
 export default LocationV1;

@@ -39,7 +39,7 @@ const UsersV1 = {
 };
 
 const searchByName = async (name: string, env: Env): Promise<Response> => {
-  return new Response(JSON.stringify(await fetchUserSearch(name, env)), { status: 200 });
+  return Response.json(await fetchUserSearch(name, env), { status: 200 });
 };
 
 const dataById = async (id: string, env: Env): Promise<Response> => {
@@ -49,7 +49,7 @@ const dataById = async (id: string, env: Env): Promise<Response> => {
     const response = user as any;
     delete response.success;
 
-    return new Response(JSON.stringify(response), { status: 200 });
+    return Response.json(response, { status: 200 });
   }
 
   if (user.statusCode === 404) {
