@@ -154,19 +154,19 @@ const removeFriend = async (request: FriendRequest, env: Env): Promise<Response>
 const listFriends = async (userId: string, env: Env): Promise<Response> => {
   const friends: string[] = (await env.FRIENDS_KV.get(userId, 'json')) ?? [];
 
-  return new Response(JSON.stringify(friends), { status: 200 });
+  return Response.json(friends, { status: 200 });
 };
 
 const listIncoming = async (userId: string, env: Env): Promise<Response> => {
   const incoming: string[] = (await env.REQUESTS_IN_KV.get(userId, 'json')) ?? [];
 
-  return new Response(JSON.stringify(incoming), { status: 200 });
+  return Response.json(incoming, { status: 200 });
 };
 
 const listOutgoing = async (userId: string, env: Env): Promise<Response> => {
   const outgoing: string[] = (await env.REQUESTS_OUT_KV.get(userId, 'json')) ?? [];
 
-  return new Response(JSON.stringify(outgoing), { status: 200 });
+  return Response.json(outgoing, { status: 200 });
 };
 
 type KVEntrys = {

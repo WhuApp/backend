@@ -47,13 +47,17 @@ type User = {
 ### Locations
 
 - POST `/locations/v1/me`
-  - Payload: `TimedLocation`
+  - Payload: `LocationRequestPayload`
 - GET `/locations/v1/me`
   - Response: `TimedLocation`
 - GET `/locations/v1/by-id/{id}`
   - Response: `TimedLocation`
 
 ```ts
+type LocationRequestPayload = {
+  timedLocation: TimedLocation;
+};
+
 type TimedLocation = {
   latitude: number;
   longitude: number;

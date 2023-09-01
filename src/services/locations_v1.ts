@@ -1,6 +1,10 @@
 import { Env, Service } from '../types';
 import { authenticateUser } from '../auth';
 
+type LocationRequestPayload = {
+  timedLocation: TimedLocation;
+};
+
 type LocationRequest = {
   timedLocation: TimedLocation;
   from: string;
@@ -21,13 +25,13 @@ const LocationV1: Service = {
 
     switch (request.method) {
       case 'POST': {
+        const body: LocationRequestPayload = await request.json();
+        const locationRequest: LocationRequest = {
+          from: senderId,
+          timedLocation: body.timedLocation,
+        };
         switch (subpath) {
           case 'me':
-            const body: TimedLocation = await request.json();
-            const locationRequest: LocationRequest = {
-              timedLocation: body,
-              from: senderId,
-            };
             return await storeData(locationRequest, env);
         }
       }
@@ -83,7 +87,7 @@ const storeData = async (request: LocationRequest, env: Env): Promise<Response> 
 };
 
 const dataById = async (id: string, env: Env): Promise<Response> => {
-  return new Response(await env.LOCATION_KV.get(id, 'text'), { status: 200 });
+  return Response.json(await env.LOCATION_KV.get(id, 'json'), { status: 200 });
 };
 
 export default LocationV1;
