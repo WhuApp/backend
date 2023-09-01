@@ -1,9 +1,7 @@
 import { Env, Service } from '../types';
 import { authenticateUser } from '../auth';
 
-type LocationRequestPayload = {
-  timedLocation: TimedLocation;
-};
+type LocationRequestPayload = TimedLocation;
 
 type LocationRequest = {
   timedLocation: TimedLocation;
@@ -29,7 +27,7 @@ const LocationV1: Service = {
         const body: LocationRequestPayload = await request.json();
         const locationRequest: LocationRequest = {
           from: senderId,
-          timedLocation: body.timedLocation,
+          timedLocation: body,
         };
         switch (pathSegments[0]) {
           case 'me':
