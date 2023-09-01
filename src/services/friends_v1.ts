@@ -37,7 +37,7 @@ const FriendsV1: Service = {
             return await acceptRequest(friendRequest, env);
           case 'requests/ignore':
             return await ignoreRequest(friendRequest, env);
-          case 'request/cancel':
+          case 'requests/cancel':
             return await cancelRequest(friendRequest, env);
           case 'remove':
             return await removeFriend(friendRequest, env);
