@@ -5,7 +5,7 @@ export default <ExportedHandler<Env>>{
   async fetch(request, env): Promise<Response> {
     try {
       const url = new URL(request.url);
-      const servicePath = `/${url.pathname.split("/").slice(1, 3).join("/")}/`
+      const servicePath = `/${url.pathname.split('/').slice(1, 3).join('/')}/`;
 
       const found = Object.values(services).filter(
         (service: Service) => service.path === servicePath

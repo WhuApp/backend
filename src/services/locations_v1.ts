@@ -22,6 +22,7 @@ const LocationV1: Service = {
   fetch: async (request: Request, env: Env, subpath: string): Promise<Response> => {
     const authContext = await authenticateUser(request.headers);
     const senderId = authContext.userId;
+    const pathSegments: string[] = subpath.split('/');
 
     switch (request.method) {
       case 'POST': {
@@ -30,30 +31,31 @@ const LocationV1: Service = {
           from: senderId,
           timedLocation: body.timedLocation,
         };
-        switch (subpath) {
+        switch (pathSegments[0]) {
           case 'me':
             return await storeData(locationRequest, env);
         }
       }
       case 'GET': {
-        if (subpath === 'me') {
-          return await dataById(senderId, env);
-        }
-
-        if (subpath.startsWith('by-id/')) {
-          const id = decodeURI(subpath.split('/').slice(-1)[0]);
-
-          if (!id) {
-            throw new Error('No user id provided');
+        switch (pathSegments[0]) {
+          case 'me': {
+            return await dataById(senderId, env);
           }
+          case 'by-id': {
+            const id = decodeURI(pathSegments[1]);
 
-          const friends: string[] = (await env.FRIENDS_KV.get(senderId, 'json')) ?? [];
+            if (!id) {
+              throw new Error('No user id provided');
+            }
 
-          if (!friends.includes(id)) {
-            return new Response('No access', { status: 401 });
+            const friends: string[] = (await env.FRIENDS_KV.get(senderId, 'json')) ?? [];
+
+            if (!friends.includes(id)) {
+              return new Response('No access', { status: 401 });
+            }
+
+            return await dataById(id, env);
           }
-
-          return await dataById(id, env);
         }
       }
     }
