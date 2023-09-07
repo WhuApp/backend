@@ -2,7 +2,7 @@ import { Env, Service } from '../types';
 import { authenticateUser } from '../auth';
 import { fetchUser, fetchUserSearch } from '../auth0';
 
-const UsersV1 = {
+const UsersV1: Service = {
   path: '/users/v1/',
 
   fetch: async (request: Request, env: Env, subpath: string): Promise<Response> => {
