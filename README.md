@@ -31,7 +31,7 @@ type FriendRequestPayload = {
 
 ### Users
 
-- POST `/users/v1/delete/me`
+- DELETE `/users/v1/delete/me`
 - GET `/users/v1/me`
   - Response: `User`
 - GET `/users/v1/by-id/{id}`
