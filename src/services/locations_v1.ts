@@ -33,6 +33,7 @@ const LocationV1: Service = {
           case 'me':
             return await storeData(locationRequest, env);
         }
+        break;
       }
       case 'GET': {
         switch (pathSegments[0]) {
@@ -55,6 +56,7 @@ const LocationV1: Service = {
             return await dataById(id, env);
           }
         }
+        break;
       }
     }
     throw new Error('Service not implemented');
