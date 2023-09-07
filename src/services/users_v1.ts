@@ -24,14 +24,14 @@ const UsersV1: Service = {
             }
 
             /*
-                // TODO:  Is this user data public or are only friends
-                //        allowed to receive it?
-                const friends: string[] = (await env.FRIENDS_KV.get(senderId, 'json')) ?? [];
-    
-                if (!friends.includes(id)) {
-                  return new Response('No access', { status: 401 });
-                }
-                */
+              // TODO:  Is this user data public or are only friends
+              //        allowed to receive it?
+              const friends: string[] = (await env.FRIENDS_KV.get(senderId, 'json')) ?? [];
+  
+              if (!friends.includes(id)) {
+                return new Response('No access', { status: 401 });
+              }
+            */
 
             return new Response('No access', { status: 401 });
           }
@@ -99,6 +99,7 @@ const dataById = async (id: string, env: Env): Promise<Response> => {
 
 const deleteUser = async (id: string, env: Env): Promise<Response> => {
   const reason = await deleteAuthUser(id, env);
+  
   if (reason) {
     return new Response(reason, { status: 400 });
   }
