@@ -11,21 +11,19 @@ const UsersV1: Service = {
     const pathSegments: string[] = subpath.split('/');
 
     switch (request.method) {
-      case 'POST': {
+      case 'DELETE': {
         switch (pathSegments[0]) {
-          case 'delete': {
-            switch (pathSegments[1]) {
-              case 'me': {
-                return await deleteUser(senderId, env);
-              }
-              case 'by-id': {
-                const id = decodeURI(pathSegments[1]);
+          case 'me': {
+            return await deleteUser(senderId, env);
+          }
+          case 'by-id': {
+            const id = decodeURI(pathSegments[1]);
 
-                if (!id) {
-                  throw new Error('No user id provided');
-                }
+            if (!id) {
+              throw new Error('No user id provided');
+            }
 
-                /*
+            /*
                 // TODO:  Is this user data public or are only friends
                 //        allowed to receive it?
                 const friends: string[] = (await env.FRIENDS_KV.get(senderId, 'json')) ?? [];
@@ -35,9 +33,7 @@ const UsersV1: Service = {
                 }
                 */
 
-                return new Response('No access', { status: 401 });
-              }
-            }
+            return new Response('No access', { status: 401 });
           }
         }
         break;
@@ -103,12 +99,13 @@ const dataById = async (id: string, env: Env): Promise<Response> => {
 
 const deleteUser = async (id: string, env: Env): Promise<Response> => {
   const reason = await deleteAuthUser(id, env);
-  console.log(reason);
   if (reason) {
     return new Response(reason, { status: 400 });
   }
 
-  return Response.json({}, { status: 200 });
+  //delete data
+
+  return Response.json({}, { status: 204 });
 };
 
 export default UsersV1;

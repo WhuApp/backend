@@ -116,7 +116,6 @@ export const deleteAuthUser = async (id: string, env: Env): Promise<string | und
   headers.append('Accept', 'application/json');
   headers.append('Authorization', `${token.token_type} ${token.access_token}`);
 
-  console.log(id);
   const response = await fetch(`https://whuapp.eu.auth0.com/api/v2/users/${id}`, requestOptions);
 
   if (response.status !== 204) return `Auth0Error: ${response.status} ${await response.text()}`;
