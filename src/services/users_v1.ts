@@ -23,17 +23,7 @@ const UsersV1: Service = {
               throw new Error('No user id provided');
             }
 
-            /*
-              // TODO:  Is this user data public or are only friends
-              //        allowed to receive it?
-              const friends: string[] = (await env.FRIENDS_KV.get(senderId, 'json')) ?? [];
-  
-              if (!friends.includes(id)) {
-                return new Response('No access', { status: 401 });
-              }
-            */
-
-            return new Response('No access', { status: 401 });
+            return new Response('Not implemented', { status: 501 });
           }
         }
         break;
@@ -50,15 +40,7 @@ const UsersV1: Service = {
               throw new Error('No user id provided');
             }
 
-            /*
             // TODO:  Is this user data public or are only friends
-            //        allowed to receive it?
-            const friends: string[] = (await env.FRIENDS_KV.get(senderId, 'json')) ?? [];
-
-            if (!friends.includes(id)) {
-              return new Response('No access', { status: 401 });
-            }
-            */
 
             return await dataById(id, env);
           }
@@ -99,14 +81,14 @@ const dataById = async (id: string, env: Env): Promise<Response> => {
 
 const deleteUser = async (id: string, env: Env): Promise<Response> => {
   const reason = await deleteAuthUser(id, env);
-  
+
   if (reason) {
     return new Response(reason, { status: 400 });
   }
 
-  //delete data
+  // TODO: Delete data
 
-  return Response.json({}, { status: 204 });
+  return new Response(undefined, { status: 204 });
 };
 
 export default UsersV1;
