@@ -69,10 +69,11 @@ export default <ExportedHandler<Env>>{
       let response = await api(request);
       response = new Response(response.body, response);
 
-      const origin = response.headers.get('Origin');
+      const origin = request.headers.get('Origin');
       if (origin !== null && allowedOrigins.includes(origin)) {
         response.headers.set('Access-Control-Allow-Origin', origin);
       }
+
       response.headers.append('Vary', 'Origin');
 
       return response;
