@@ -70,7 +70,7 @@ export default <ExportedHandler<Env>>{
       response = new Response(response.body, response);
 
       const origin = new URL(request.url).origin;
-      response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Access-Control-Allow-Origin', '*');
       response.headers.append('Vary', 'Origin');
 
       return response;
