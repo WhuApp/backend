@@ -28,7 +28,7 @@ export default <ExportedHandler<Env>>{
 
     const allowedOrigins: string[] = [
       'https://whu.app',
-      'https://development.whu-homepage-astro.pages.dev/',
+      'https://development.whu-homepage-astro.pages.dev',
     ];
 
     const allowedMethods: string = 'GET,HEAD,POST,OPTIONS,DELETE';
