@@ -10,3 +10,6 @@
 
 /.wrangler
 .dev.vars
+
+# IntelliJ
+.idea/
