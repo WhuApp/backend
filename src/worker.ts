@@ -15,7 +15,7 @@ export default <ExportedHandler<Env>>{
         if (found) {
           return await found.fetch(request, env, url.pathname.substring(servicePath.length));
         } else {
-          throw new Error('Service not found');
+          return new Response('Service not found', { status: 404 });
         }
       } catch (error: unknown) {
         if (error instanceof Error) {
