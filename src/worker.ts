@@ -21,7 +21,7 @@ export default <ExportedHandler<Env>>{
         if (error instanceof Error) {
           return new Response(error.message, { status: 500 });
         } else {
-          return new Response(JSON.stringify(error), { status: 500 });
+          return new Response('In code error: ' + error, { status: 500 });
         }
       }
     }
