@@ -20,6 +20,8 @@ export default <ExportedHandler<Env>>{
       } catch (error: unknown) {
         if (error instanceof Error) {
           return new Response(error.message, { status: 500 });
+        } else if (error instanceof Response) {
+          return error;
         } else {
           return new Response('In code error: ' + error, { status: 500 });
         }
