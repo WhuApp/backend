@@ -71,8 +71,10 @@ const storeData = async (request: LocationRequest, env: Env): Promise<Response> 
     throw new Response('Data wrong format', { status: 400 });
   }
 
-  if (location.timestamp > Date.now()) {
-    throw new Response('Invalid data', { status: 400 });
+  const now = Date.now();
+
+  if (location.timestamp > now) {
+    throw new Response(`Invalid date: Got ${location.timestamp}, now: ${now}`, { status: 400 });
   }
 
   //cut incomming data
@@ -85,7 +87,7 @@ const storeData = async (request: LocationRequest, env: Env): Promise<Response> 
 
   await env.LOCATION_KV.put(id, JSON.stringify(kvData));
 
-  return new Response(undefined, { status: 201 });
+  return new Response(`Got ${location.timestamp}, now: ${now}`, { status: 201 });
 };
 
 const dataById = async (id: string, env: Env): Promise<Response> => {
