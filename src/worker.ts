@@ -35,29 +35,17 @@ export default <ExportedHandler<Env>>{
     const allowedMethodsAr: string[] = allowedMethods.split(',');
 
     function handleOptions(request: Request) {
-      const headers = request.headers;
-      if (
-        headers.get('Access-Control-Request-Method') !== null &&
-        headers.get('Access-Control-Request-Headers') !== null
-      ) {
-        const respHeaders = {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': allowedMethods,
-          'Access-Control-Max-Age': '86400',
-          'Access-Control-Allow-Headers':
-            request.headers.get('Access-Control-Request-Headers') ?? '',
-        };
+      const respHeaders = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': allowedMethods,
+        'Access-Control-Max-Age': '86400',
+        'Access-Control-Allow-Headers':
+          request.headers.get('Access-Control-Request-Headers') ?? '',
+      };
 
-        return new Response(null, {
-          headers: respHeaders,
-        });
-      } else {
-        return new Response(null, {
-          headers: {
-            Allow: allowedMethods,
-          },
-        });
-      }
+      return new Response(null, {
+        headers: respHeaders,
+      });
     }
 
     async function handleRequest(request: Request) {
