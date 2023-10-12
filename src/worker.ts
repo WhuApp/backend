@@ -37,14 +37,9 @@ export default <ExportedHandler<Env>>{
     function handleOptions(request: Request) {
       const headers = request.headers;
       if (
-        headers.get('Origin') !== null &&
         headers.get('Access-Control-Request-Method') !== null &&
         headers.get('Access-Control-Request-Headers') !== null
       ) {
-        if (!allowedOrigins.includes(headers.get('Origin')!)) {
-          return new Response('CORS origin not accepted', { status: 403 });
-        }
-
         const respHeaders = {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': allowedMethods,
