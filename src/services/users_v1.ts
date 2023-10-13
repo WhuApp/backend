@@ -40,8 +40,7 @@ const UsersV1: Service = {
               throw new Error('No user id provided');
             }
 
-            // TODO:  Is this user data public or are only friends
-
+            // TODO: Is this user data public or only for friends?
             return await dataById(id, env);
           }
           case 'search': {
@@ -55,6 +54,7 @@ const UsersV1: Service = {
         break;
       }
     }
+
     throw new Error('Service not implemented');
   },
 };
@@ -65,6 +65,7 @@ const searchByName = async (name: string, env: Env): Promise<Response> => {
 
 const dataById = async (id: string, env: Env): Promise<Response> => {
   const user = await fetchUser(id, env);
+
   if (user.success) {
     const response = user as any;
     delete response.success;
@@ -87,7 +88,6 @@ const deleteUser = async (id: string, env: Env): Promise<Response> => {
   }
 
   // TODO: Delete data
-
   return new Response(undefined, { status: 204 });
 };
 
