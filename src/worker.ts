@@ -37,17 +37,33 @@ export default <ExportedHandler<Env>>{
     const allowedMethodsAr: string[] = allowedMethods.split(',');
 
     function handleOptions(request: Request) {
-      const respHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': allowedMethods,
-        'Access-Control-Max-Age': '86400',
-        'Access-Control-Allow-Headers':
-          request.headers.get('Access-Control-Request-Headers') ?? '',
-      };
+      const headers = request.headers;
+      if (
+        headers.get('Origin') !== null &&
+        headers.get('Access-Control-Request-Method') !== null &&
+        headers.get('Access-Control-Request-Headers') !== null
+      ) {
+        if (!allowedOrigins.includes(headers.get('Origin')!)) {
+          return new Response('CORS origin not accepted', { status: 403 });
+        }
 
-      return new Response(null, {
-        headers: respHeaders,
-      });
+        const respHeaders = {
+          'Access-Control-Allow-Origin': headers.get('Origin')!,
+          'Access-Control-Allow-Methods': allowedMethods,
+          'Access-Control-Max-Age': '86400',
+          'Access-Control-Allow-Headers':
+            request.headers.get('Access-Control-Request-Headers') ?? '',
+        };
+        return new Response(null, {
+          headers: respHeaders,
+        });
+      } else {
+        return new Response(null, {
+          headers: {
+            Allow: allowedMethods,
+          },
+        });
+      }
     }
 
     async function handleRequest(request: Request) {
