@@ -13,7 +13,7 @@ type FriendRequest = {
 
 const FriendsV1: Service = {
   path: '/friends/v1/',
-  fetch: async (request: Request, env: Env, subpath: string): Promise<Response> => {
+  fetch: async (request: Request, subPath: string, env: Env): Promise<Response> => {
     const authContext = await authenticateUser(request.headers);
     const senderId = authContext.userId;
 
@@ -30,7 +30,7 @@ const FriendsV1: Service = {
           return new Response('Invalid Friend ID', { status: 400 });
         }
 
-        switch (subpath) {
+        switch (subPath) {
           case 'requests/send':
             return await sendRequest(friendRequest, env);
           case 'requests/accept':
@@ -45,7 +45,7 @@ const FriendsV1: Service = {
       }
 
       case 'GET': {
-        switch (subpath) {
+        switch (subPath) {
           case 'list':
             return await listFriends(senderId, env);
           case 'requests/in/list':

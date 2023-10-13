@@ -5,10 +5,10 @@ import { deleteAuthUser, fetchUser, fetchUserSearch } from '../auth0';
 const UsersV1: Service = {
   path: '/users/v1/',
 
-  fetch: async (request: Request, env: Env, subpath: string): Promise<Response> => {
+  fetch: async (request: Request, subPath: string, env: Env): Promise<Response> => {
     const authContext = await authenticateUser(request.headers);
     const senderId = authContext.userId;
-    const pathSegments: string[] = subpath.split('/');
+    const pathSegments: string[] = subPath.split('/');
 
     switch (request.method) {
       case 'DELETE': {
