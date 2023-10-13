@@ -24,6 +24,6 @@ export interface Env {
 }
 
 export interface Service {
-  fetch(request: Request, env: Env, subpath: string): Promise<Response>;
+  fetch(request: Request, subPath: string, env: Env): Promise<Response>;
   path: string;
 }

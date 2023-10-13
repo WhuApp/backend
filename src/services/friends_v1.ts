@@ -13,7 +13,8 @@ type FriendRequest = {
 
 const FriendsV1: Service = {
   path: '/friends/v1/',
-  fetch: async (request: Request, env: Env, subpath: string): Promise<Response> => {
+
+  fetch: async (request: Request, subPath: string, env: Env): Promise<Response> => {
     const authContext = await authenticateUser(request.headers);
     const senderId = authContext.userId;
 
@@ -30,7 +31,7 @@ const FriendsV1: Service = {
           return new Response('Invalid Friend ID', { status: 400 });
         }
 
-        switch (subpath) {
+        switch (subPath) {
           case 'requests/send':
             return await sendRequest(friendRequest, env);
           case 'requests/accept':
@@ -42,10 +43,12 @@ const FriendsV1: Service = {
           case 'remove':
             return await removeFriend(friendRequest, env);
         }
+
+        break;
       }
 
       case 'GET': {
-        switch (subpath) {
+        switch (subPath) {
           case 'list':
             return await listFriends(senderId, env);
           case 'requests/in/list':
@@ -146,7 +149,7 @@ const removeFriend = async (request: FriendRequest, env: Env): Promise<Response>
     return new Response('You are not friends', { status: 400 });
   }
 
-  await deleteFrienship(request, env, { selfFriends });
+  await deleteFriendship(request, env, { selfFriends });
 
   return new Response(undefined, { status: 201 });
 };
@@ -169,7 +172,7 @@ const listOutgoing = async (userId: string, env: Env): Promise<Response> => {
   return Response.json(outgoing, { status: 200 });
 };
 
-type KVEntrys = {
+type KVEntries = {
   selfIncoming?: string[];
   selfOutgoing?: string[];
   selfFriends?: string[];
@@ -180,21 +183,21 @@ type KVEntrys = {
 
 /**
  * Guarantees that request is in the REQUEST_IN/OUT_KV
- * @returns if some KV entrys changed
+ * @returns if some KV entries changed
  */
 const addRequests = async (
   request: FriendRequest,
   env: Env,
-  knownEntrys: KVEntrys
+  knownEntries: KVEntries
 ): Promise<boolean> => {
   const { from, to } = request;
   let changed = false;
 
   const selfOutgoing: string[] =
-    knownEntrys.selfOutgoing ?? (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
+    knownEntries.selfOutgoing ?? (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
 
   const otherIncoming: string[] =
-    knownEntrys.otherIncoming ?? (await env.REQUESTS_IN_KV.get(to, 'json')) ?? [];
+    knownEntries.otherIncoming ?? (await env.REQUESTS_IN_KV.get(to, 'json')) ?? [];
 
   if (!selfOutgoing.includes(to)) {
     selfOutgoing.push(to);
@@ -211,24 +214,24 @@ const addRequests = async (
 
 /**
  * Guarantees that request is not in the REQUEST_IN/OUT_KV
- * @returns if some KV entrys changed
+ * @returns if some KV entries changed
  */
 const deleteRequests = async (
   request: FriendRequest,
   env: Env,
-  knownEntrys: KVEntrys
+  knownEntries: KVEntries
 ): Promise<boolean> => {
   const { from, to } = request;
   let changed = false;
 
   const selfIncoming: string[] =
-    knownEntrys.selfIncoming ?? (await env.REQUESTS_IN_KV.get(from, 'json')) ?? [];
+    knownEntries.selfIncoming ?? (await env.REQUESTS_IN_KV.get(from, 'json')) ?? [];
   const selfOutgoing: string[] =
-    knownEntrys.selfOutgoing ?? (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
+    knownEntries.selfOutgoing ?? (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
   const otherIncoming: string[] =
-    knownEntrys.otherIncoming ?? (await env.REQUESTS_IN_KV.get(to, 'json')) ?? [];
+    knownEntries.otherIncoming ?? (await env.REQUESTS_IN_KV.get(to, 'json')) ?? [];
   const otherOutgoing: string[] =
-    knownEntrys.otherOutgoing ?? (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
+    knownEntries.otherOutgoing ?? (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
 
   if (selfIncoming.includes(to)) {
     await env.REQUESTS_IN_KV.put(from, JSON.stringify(selfIncoming.filter((x) => x != to)));
@@ -251,20 +254,20 @@ const deleteRequests = async (
 
 /**
  * Guarantees that request is in the FRIENDS_KV
- * @returns if some KV entrys changed
+ * @returns if some KV entries changed
  */
 const addFriendship = async (
   request: FriendRequest,
   env: Env,
-  knownEntrys: KVEntrys
+  knownEntries: KVEntries
 ): Promise<boolean> => {
   const { from, to } = request;
   let changed = false;
 
   const selfFriends: string[] =
-    knownEntrys.selfFriends ?? (await env.FRIENDS_KV.get(from, 'json')) ?? [];
+    knownEntries.selfFriends ?? (await env.FRIENDS_KV.get(from, 'json')) ?? [];
   const otherFriends: string[] =
-    knownEntrys.otherFriends ?? (await env.FRIENDS_KV.get(to, 'json')) ?? [];
+    knownEntries.otherFriends ?? (await env.FRIENDS_KV.get(to, 'json')) ?? [];
 
   if (!selfFriends.includes(to)) {
     selfFriends.push(to);
@@ -281,18 +284,18 @@ const addFriendship = async (
   return changed;
 };
 
-const deleteFrienship = async (
+const deleteFriendship = async (
   request: FriendRequest,
   env: Env,
-  knownEntrys: KVEntrys
+  knownEntries: KVEntries
 ): Promise<boolean> => {
   const { from, to } = request;
   let changed = false;
 
   const selfFriends: string[] =
-    knownEntrys.selfFriends ?? (await env.FRIENDS_KV.get(from, 'json')) ?? [];
+    knownEntries.selfFriends ?? (await env.FRIENDS_KV.get(from, 'json')) ?? [];
   const otherFriends: string[] =
-    knownEntrys.otherFriends ?? (await env.FRIENDS_KV.get(to, 'json')) ?? [];
+    knownEntries.otherFriends ?? (await env.FRIENDS_KV.get(to, 'json')) ?? [];
 
   if (selfFriends.includes(to)) {
     await env.FRIENDS_KV.put(from, JSON.stringify(selfFriends.filter((x) => x != to)));

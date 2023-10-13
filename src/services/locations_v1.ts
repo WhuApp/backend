@@ -17,10 +17,11 @@ type TimedLocation = {
 
 const LocationV1: Service = {
   path: '/locations/v1/',
-  fetch: async (request: Request, env: Env, subpath: string): Promise<Response> => {
+
+  fetch: async (request: Request, subPath: string, env: Env): Promise<Response> => {
     const authContext = await authenticateUser(request.headers);
     const senderId = authContext.userId;
-    const pathSegments: string[] = subpath.split('/');
+    const pathSegments: string[] = subPath.split('/');
 
     switch (request.method) {
       case 'POST': {
@@ -29,10 +30,12 @@ const LocationV1: Service = {
           from: senderId,
           timedLocation: body,
         };
+
         switch (pathSegments[0]) {
           case 'me':
             return await storeData(locationRequest, env);
         }
+
         break;
       }
       case 'GET': {
@@ -56,9 +59,11 @@ const LocationV1: Service = {
             return await dataById(id, env);
           }
         }
+
         break;
       }
     }
+
     throw new Error('Service not implemented');
   },
 };
@@ -71,12 +76,13 @@ const storeData = async (request: LocationRequest, env: Env): Promise<Response> 
     throw new Response('Data wrong format', { status: 400 });
   }
 
+  // TODO: Fix date validation bug (maybe only care for seconds)
   // const now = Date.now();
   // if (location.timestamp > now) {
   //   throw new Response(`Invalid date: Got ${location.timestamp}, now: ${now}`, { status: 400 });
   // }
 
-  //cut incomming data
+  // Cut incoming data
   const kvData: TimedLocation = {
     latitude: location.latitude,
     longitude: location.longitude,
