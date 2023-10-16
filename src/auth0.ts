@@ -1,8 +1,20 @@
 import { Env } from './types';
+import { AUTH0_DOMAIN } from './constants';
+
+// Used to cache short-lived access tokens
+// https://auth0.com/docs/secure/tokens/access-tokens/get-management-api-access-tokens-for-production
+let managementApiToken: Auth0Token;
 
 type Auth0TokenResponse = {
-  token_type: string;
   access_token: string;
+  expires_in: number;
+  scope: string;
+  token_type: string;
+};
+
+type Auth0Token = {
+  token: string;
+  expiresAt: number;
 };
 
 type Auth0UserResponse =
@@ -21,23 +33,40 @@ type Auth0User = {
   nickname: string;
 };
 
-const fetchToken = async (env: Env): Promise<Auth0TokenResponse> => {
-  const response = await fetch('https://whuapp.eu.auth0.com/oauth/token', {
+const getOrFetchManagementApiToken = async (env: Env): Promise<string> => {
+  if (managementApiToken && managementApiToken.expiresAt < Date.now()) {
+    return managementApiToken.token;
+  }
+
+  const response = await fetch(`${AUTH0_DOMAIN}/oauth/token`, {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'client_credentials',
       client_id: env.AUTH0_CLIENT_ID,
       client_secret: env.AUTH0_TOKEN,
-      audience: 'https://whuapp.eu.auth0.com/api/v2/',
+      audience: `${AUTH0_DOMAIN}}/api/v2/`,
     }),
   });
 
-  return await response.json();
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch Auth0 management API token: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const json: Auth0TokenResponse = await response.json();
+
+  managementApiToken = {
+    token: json.access_token,
+    expiresAt: Date.now() + json.expires_in * 1000,
+  };
+
+  return managementApiToken.token;
 };
 
 export const fetchUserSearch = async (name: string, env: Env): Promise<string[]> => {
-  const token = await fetchToken(env);
+  const token = await getOrFetchManagementApiToken(env);
   const headers = new Headers();
   const requestOptions = {
     method: 'GET',
@@ -46,12 +75,10 @@ export const fetchUserSearch = async (name: string, env: Env): Promise<string[]>
   };
 
   headers.append('Accept', 'application/json');
-  headers.append('Authorization', `${token.token_type} ${token.access_token}`);
+  headers.append('Authorization', `Bearer ${token}`);
 
   const response = await fetch(
-    `https://whuapp.eu.auth0.com/api/v2/users?search_engine=v3&q=${encodeURIComponent(
-      `nickname:"${name}"`
-    )}`,
+    `${AUTH0_DOMAIN}/api/v2/users?search_engine=v3&q=${encodeURIComponent(`nickname:"${name}"`)}`,
     requestOptions
   );
 
@@ -65,7 +92,7 @@ export const fetchUserSearch = async (name: string, env: Env): Promise<string[]>
 };
 
 export const fetchUser = async (id: string, env: Env): Promise<Auth0UserResponse> => {
-  const token = await fetchToken(env);
+  const token = await getOrFetchManagementApiToken(env);
   const headers = new Headers();
   const requestOptions = {
     method: 'GET',
@@ -74,9 +101,9 @@ export const fetchUser = async (id: string, env: Env): Promise<Auth0UserResponse
   };
 
   headers.append('Accept', 'application/json');
-  headers.append('Authorization', `${token.token_type} ${token.access_token}`);
+  headers.append('Authorization', `Bearer ${token}`);
 
-  const response = await fetch(`https://whuapp.eu.auth0.com/api/v2/users/${id}`, requestOptions);
+  const response = await fetch(`${AUTH0_DOMAIN}/api/v2/users/${id}`, requestOptions);
 
   if (response.status === 200) {
     const data: Auth0User = await response.json();
@@ -105,7 +132,7 @@ export const userExists = async (id: string, env: Env): Promise<boolean> => {
 };
 
 export const deleteAuthUser = async (id: string, env: Env): Promise<string | undefined> => {
-  const token = await fetchToken(env);
+  const token = await getOrFetchManagementApiToken(env);
   const headers = new Headers();
   const requestOptions = {
     method: 'DELETE',
@@ -114,9 +141,9 @@ export const deleteAuthUser = async (id: string, env: Env): Promise<string | und
   };
 
   headers.append('Accept', 'application/json');
-  headers.append('Authorization', `${token.token_type} ${token.access_token}`);
+  headers.append('Authorization', `Bearer ${token}`);
 
-  const response = await fetch(`https://whuapp.eu.auth0.com/api/v2/users/${id}`, requestOptions);
+  const response = await fetch(`${AUTH0_DOMAIN}/api/v2/users/${id}`, requestOptions);
 
   if (response.status !== 204) return `Auth0Error: ${response.status} ${await response.text()}`;
 };
