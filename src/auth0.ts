@@ -45,7 +45,7 @@ const getOrFetchManagementApiToken = async (env: Env): Promise<string> => {
       grant_type: 'client_credentials',
       client_id: env.AUTH0_CLIENT_ID,
       client_secret: env.AUTH0_TOKEN,
-      audience: `${AUTH0_DOMAIN}}/api/v2/`,
+      audience: `${AUTH0_DOMAIN}/api/v2/`,
     }),
   });
 
