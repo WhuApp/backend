@@ -17,18 +17,14 @@ type Auth0Token = {
   expiresAt: number;
 };
 
-type Auth0UserResponse =
-  | ({
-      success: true;
-    } & Auth0User)
-  | {
-      success: false;
-      message: string;
-      statusCode: number;
-    };
+type Auth0UserResponse = {
+  user_id: string;
+  email: string;
+  nickname: string;
+};
 
 type Auth0User = {
-  user_id: string;
+  userId: string;
   email: string;
   nickname: string;
 };
@@ -65,6 +61,42 @@ const getOrFetchManagementApiToken = async (env: Env): Promise<string> => {
   return managementApiToken.token;
 };
 
+// https://auth0.com/docs/api/management/v2/users/get-users-by-id
+export const fetchUser = async (id: string, env: Env): Promise<Auth0User | null> => {
+  const token = await getOrFetchManagementApiToken(env);
+  const response = await fetch(`${AUTH0_DOMAIN}/api/v2/users/${id}`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    redirect: 'follow',
+  });
+
+  // User not found
+  if (response.status === 404) {
+    return null;
+  }
+
+  // User successfully retrieved
+  if (response.status === 200) {
+    const user: Auth0UserResponse = await response.json();
+
+    return {
+      userId: user.user_id,
+      email: user.email,
+      nickname: user.nickname,
+    };
+  }
+
+  // Something went wrong
+  throw new Error(`Failed to fetch Auth0 user: ${response.status} ${response.statusText}`);
+};
+
+export const userExists = async (id: string, env: Env): Promise<boolean> => {
+  return (await fetchUser(id, env)) !== null;
+};
+
 export const fetchUserSearch = async (name: string, env: Env): Promise<string[]> => {
   const token = await getOrFetchManagementApiToken(env);
   const headers = new Headers();
@@ -89,46 +121,6 @@ export const fetchUserSearch = async (name: string, env: Env): Promise<string[]>
   }
 
   throw new Error(`Auth0Error: ${response.status} ${await response.text()}`);
-};
-
-export const fetchUser = async (id: string, env: Env): Promise<Auth0UserResponse> => {
-  const token = await getOrFetchManagementApiToken(env);
-  const headers = new Headers();
-  const requestOptions = {
-    method: 'GET',
-    headers: headers,
-    redirect: 'follow',
-  };
-
-  headers.append('Accept', 'application/json');
-  headers.append('Authorization', `Bearer ${token}`);
-
-  const response = await fetch(`${AUTH0_DOMAIN}/api/v2/users/${id}`, requestOptions);
-
-  if (response.status === 200) {
-    const data: Auth0User = await response.json();
-    return {
-      success: true,
-      user_id: data.user_id,
-      email: data.email,
-      nickname: data.nickname,
-    };
-  } else {
-    return {
-      success: false,
-      statusCode: response.status,
-      message: await response.text(),
-    };
-  }
-};
-
-export const userExists = async (id: string, env: Env): Promise<boolean> => {
-  const user = await fetchUser(id, env);
-
-  if (user.success) return true;
-  if (user.statusCode === 404) return false;
-
-  throw new Error(`Auth0Error: ${user.statusCode} ${user.message}`);
 };
 
 export const deleteAuthUser = async (id: string, env: Env): Promise<string | undefined> => {

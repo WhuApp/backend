@@ -36,12 +36,12 @@ type FriendRequestPayload = {
   - Response: `User`
 - GET `/users/v1/by-id/{id}`
   - Response: `User`
-- GET `/users/v1/search/by-name/{nickname}`
+- GET `/users/v1/search/by-nickname/{nickname}`
   - Response: `string[]`
 
 ```ts
 type User = {
-  user_id: string;
+  userId: string;
   email: string;
   nickname: string;
 };
