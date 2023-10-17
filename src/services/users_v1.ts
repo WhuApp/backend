@@ -66,18 +66,11 @@ const searchByName = async (name: string, env: Env): Promise<Response> => {
 const dataById = async (id: string, env: Env): Promise<Response> => {
   const user = await fetchUser(id, env);
 
-  if (user.success) {
-    const response = user as any;
-    delete response.success;
-
-    return Response.json(response, { status: 200 });
+  if (user) {
+    return Response.json(user, { status: 200 });
   }
 
-  if (user.statusCode === 404) {
-    return new Response('User not found', { status: 400 });
-  }
-
-  throw new Error(`Auth0Error: ${user.statusCode} ${user.message}`);
+  return new Response('User not found', { status: 400 });
 };
 
 const deleteUser = async (id: string, env: Env): Promise<Response> => {
