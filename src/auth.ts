@@ -13,7 +13,7 @@ type JWK = {
 };
 
 function base64DecodeURL(b64urlstring: string) {
-  if (!b64urlstring) throw new Error("Undefined Base64");
+  if (!b64urlstring) throw new Error('Undefined Base64');
   return new Uint8Array(
     atob(b64urlstring.replace(/-/g, '+').replace(/_/g, '/'))
       .split('')
@@ -25,7 +25,7 @@ function base64DecodeURL(b64urlstring: string) {
 
 async function verifyToken(token: string): Promise<unknown> {
   const [meta, data, rsa] = token.split('.');
-  if (!meta || !data || !rsa) throw new Error("Invalid JWT");
+  if (!meta || !data || !rsa) throw new Error('Invalid JWT');
   const toHash = meta + '.' + data;
 
   const jwks: JWK[] = (
@@ -54,7 +54,13 @@ async function verifyToken(token: string): Promise<unknown> {
     );
 
     if (res) {
-      return JSON.parse(new TextDecoder().decode(base64DecodeURL(data)));
+      const content = JSON.parse(new TextDecoder().decode(base64DecodeURL(data)));
+
+      if (content.exp < Date.now() / 1000) {
+        throw new Error('Expired JWT');
+      }
+
+      return content;
     }
   }
 
