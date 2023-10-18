@@ -17,7 +17,7 @@ export default <ExportedHandler<Env>>{
 
       // Handle allowed method requests
       if (ALLOWED_METHODS.includes(request.method)) {
-        return handleRequest(request, env);
+        return await handleRequest(request, env);
       }
 
       // Method not allowed
