@@ -76,11 +76,17 @@ const storeData = async (request: LocationRequest, env: Env): Promise<Response> 
     throw new Response('Data wrong format', { status: 400 });
   }
 
-  // TODO: Fix date validation bug (maybe only care for seconds)
-  // const now = Date.now();
-  // if (location.timestamp > now) {
-  //   throw new Response(`Invalid date: Got ${location.timestamp}, now: ${now}`, { status: 400 });
-  // }
+  // Validate timestamp
+  const currentSeconds = Math.floor(Date.now() / 1000);
+  const requestSeconds = Math.floor(location.timestamp / 1000);
+
+  if (requestSeconds > currentSeconds) {
+    return new Response('Timestamp can not be in the future', { status: 400 });
+  }
+
+  if (requestSeconds < currentSeconds - 60) {
+    return new Response('Timestamp can not be older than 60 seconds', { status: 400 });
+  }
 
   // Cut incoming data
   const kvData: TimedLocation = {
