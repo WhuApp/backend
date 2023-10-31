@@ -84,10 +84,6 @@ const storeData = async (request: LocationRequest, env: Env): Promise<Response> 
     return new Response('Timestamp can not be in the future', { status: 400 });
   }
 
-  if (requestSeconds < currentSeconds - 60) {
-    return new Response('Timestamp can not be older than 60 seconds', { status: 400 });
-  }
-
   // Cut incoming data
   const kvData: TimedLocation = {
     latitude: location.latitude,
