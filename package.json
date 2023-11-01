@@ -12,6 +12,7 @@
     "wrangler": "^3.0.0"
   },
   "dependencies": {
+    "@graphql-yoga/plugin-defer-stream": "^3.0.0",
     "graphql": "^16.8.1",
     "graphql-yoga": "^5.0.0",
     "prettier": "^3.0.3"
