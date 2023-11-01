@@ -1,69 +1,84 @@
-import { authenticateUser } from '../auth';
-import { userExists } from '../auth0';
-import { Env, Service } from '../types';
-
-type FriendRequestPayload = {
-  friendId: string;
-};
+import { Env, GraphQLContext } from '../types';
+import { makeExecutableSchema } from '@graphql-tools/schema';
+import { SubschemaConfig } from '@graphql-tools/delegate/typings';
 
 type FriendRequest = {
   from: string;
   to: string;
 };
 
-const FriendsV1: Service = {
-  path: '/friends/v1/',
-
-  fetch: async (request: Request, subPath: string, env: Env): Promise<Response> => {
-    const authContext = await authenticateUser(request.headers);
-    const senderId = authContext.userId;
-
-    switch (request.method) {
-      case 'POST': {
-        const body: FriendRequestPayload = await request.json();
-        const exists = await userExists(body.friendId, env);
-        const friendRequest: FriendRequest = {
-          from: senderId,
-          to: body.friendId,
-        };
-
-        if (!exists) {
-          return new Response('Invalid Friend ID', { status: 400 });
-        }
-
-        switch (subPath) {
-          case 'requests/send':
-            return await sendRequest(friendRequest, env);
-          case 'requests/accept':
-            return await acceptRequest(friendRequest, env);
-          case 'requests/ignore':
-            return await ignoreRequest(friendRequest, env);
-          case 'requests/cancel':
-            return await cancelRequest(friendRequest, env);
-          case 'remove':
-            return await removeFriend(friendRequest, env);
-        }
-
-        break;
-      }
-
-      case 'GET': {
-        switch (subPath) {
-          case 'list':
-            return await listFriends(senderId, env);
-          case 'requests/in/list':
-            return await listIncoming(senderId, env);
-          case 'requests/out/list':
-            return await listOutgoing(senderId, env);
-        }
-      }
-    }
-
-    throw new Error('Service not implemented');
-  },
+type KVEntries = {
+  selfIncoming?: string[];
+  selfOutgoing?: string[];
+  selfFriends?: string[];
+  otherIncoming?: string[];
+  otherOutgoing?: string[];
+  otherFriends?: string[];
 };
 
-const sendRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
+const schema = makeExecutableSchema<GraphQLContext>({
+  typeDefs: `
+    type Query {
+      friends: [User!]!
+      incomingFriendRequests: [User!]!
+      outgoingFriendRequests: [User!]!
+    }
+
+    type Mutation {
+      sendFriendRequest(to: String!): Boolean!
+      acceptFriendRequest(to: String!): Boolean!
+      ignoreFriendRequest(to: String!): Boolean!
+      cancelFriendRequest(to: String!): Boolean!
+      removeFriend(to: String!): Boolean!
+    }
+
+    type User {
+      id: String!
+      email: String!
+      nickname: String!
+    }
+  `,
+  resolvers: {
+    Query: {
+      friends: async (_source, _args, context) => {
+        return await context.userDataLoader.loadMany(
+          (await context.env.FRIENDS_KV.get(context.id, 'json')) ?? []
+        );
+      },
+      incomingFriendRequests: async (_source, _args, context) => {
+        return await context.userDataLoader.loadMany(
+          (await context.env.REQUESTS_IN_KV.get(context.id, 'json')) ?? []
+        );
+      },
+      outgoingFriendRequests: async (_source, _args, context) => {
+        return await context.userDataLoader.loadMany(
+          (await context.env.REQUESTS_OUT_KV.get(context.id, 'json')) ?? []
+        );
+      },
+    },
+    Mutation: {
+      sendFriendRequest: ({ to }, _args, context) => {
+        return sendRequest({ to: to, from: context.id }, context.env);
+      },
+      acceptFriendRequest: ({ to }, _args, context) => {
+        return acceptRequest({ to: to, from: context.id }, context.env);
+      },
+      ignoreFriendRequest: ({ to }, _args, context) => {
+        return ignoreRequest({ to: to, from: context.id }, context.env);
+      },
+      cancelFriendRequest: ({ to }, _args, context) => {
+        return cancelRequest({ to: to, from: context.id }, context.env);
+      },
+      removeFriend: ({ to }, _args, context) => {
+        return removeFriend({ to: to, from: context.id }, context.env);
+      },
+    },
+  },
+});
+
+export const friendsSchemaConfig: SubschemaConfig<any, any, any, GraphQLContext> = { schema };
+
+const sendRequest = async (request: FriendRequest, env: Env) => {
   const { from, to } = request;
 
   if (from === to) {
@@ -88,10 +103,10 @@ const sendRequest = async (request: FriendRequest, env: Env): Promise<Response> 
     await addRequests(request, env, { selfOutgoing, otherOutgoing });
   }
 
-  return new Response(undefined, { status: 201 });
+  return true;
 };
 
-const acceptRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
+const acceptRequest = async (request: FriendRequest, env: Env) => {
   const { from, to } = request;
 
   const otherOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
@@ -107,10 +122,10 @@ const acceptRequest = async (request: FriendRequest, env: Env): Promise<Response
   await addFriendship(request, env, { selfIncoming, otherOutgoing });
   await deleteRequests(request, env, { selfIncoming, otherOutgoing });
 
-  return new Response(undefined, { status: 201 });
+  return true;
 };
 
-const ignoreRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
+const ignoreRequest = async (request: FriendRequest, env: Env) => {
   const { from, to } = request;
 
   const otherOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(to, 'json')) ?? [];
@@ -125,10 +140,10 @@ const ignoreRequest = async (request: FriendRequest, env: Env): Promise<Response
 
   await env.REQUESTS_IN_KV.put(from, JSON.stringify(selfIncoming.filter((x) => x !== to)));
 
-  return new Response(undefined, { status: 200 });
+  return true;
 };
 
-const cancelRequest = async (request: FriendRequest, env: Env): Promise<Response> => {
+const cancelRequest = async (request: FriendRequest, env: Env) => {
   const { from, to } = request;
 
   const selfOutgoing: string[] = (await env.REQUESTS_OUT_KV.get(from, 'json')) ?? [];
@@ -138,10 +153,10 @@ const cancelRequest = async (request: FriendRequest, env: Env): Promise<Response
 
   await deleteRequests(request, env, { selfOutgoing });
 
-  return new Response(undefined, { status: 200 });
+  return true;
 };
 
-const removeFriend = async (request: FriendRequest, env: Env): Promise<Response> => {
+const removeFriend = async (request: FriendRequest, env: Env) => {
   const { from, to } = request;
 
   const selfFriends: string[] = (await env.FRIENDS_KV.get(from, 'json')) ?? [];
@@ -151,34 +166,7 @@ const removeFriend = async (request: FriendRequest, env: Env): Promise<Response>
 
   await deleteFriendship(request, env, { selfFriends });
 
-  return new Response(undefined, { status: 201 });
-};
-
-const listFriends = async (userId: string, env: Env): Promise<Response> => {
-  const friends: string[] = (await env.FRIENDS_KV.get(userId, 'json')) ?? [];
-
-  return Response.json(friends, { status: 200 });
-};
-
-const listIncoming = async (userId: string, env: Env): Promise<Response> => {
-  const incoming: string[] = (await env.REQUESTS_IN_KV.get(userId, 'json')) ?? [];
-
-  return Response.json(incoming, { status: 200 });
-};
-
-const listOutgoing = async (userId: string, env: Env): Promise<Response> => {
-  const outgoing: string[] = (await env.REQUESTS_OUT_KV.get(userId, 'json')) ?? [];
-
-  return Response.json(outgoing, { status: 200 });
-};
-
-type KVEntries = {
-  selfIncoming?: string[];
-  selfOutgoing?: string[];
-  selfFriends?: string[];
-  otherIncoming?: string[];
-  otherOutgoing?: string[];
-  otherFriends?: string[];
+  return true;
 };
 
 /**
@@ -309,5 +297,3 @@ const deleteFriendship = async (
 
   return changed;
 };
-
-export default FriendsV1;

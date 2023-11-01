@@ -12,6 +12,11 @@
     "wrangler": "^3.0.0"
   },
   "dependencies": {
+    "@graphql-tools/stitch": "^9.0.3",
+    "@graphql-yoga/plugin-defer-stream": "^3.0.0",
+    "dataloader": "^2.2.2",
+    "graphql": "^16.8.1",
+    "graphql-yoga": "^5.0.0",
     "prettier": "^3.0.3"
   }
 }
