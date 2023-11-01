@@ -1,3 +1,5 @@
+import DataLoader from 'dataloader';
+
 export interface Env {
   // Example binding to KV. Learn more at https://developers.cloudflare.com/workers/runtime-apis/kv/
   // MY_KV_NAMESPACE: KVNamespace;
@@ -23,7 +25,22 @@ export interface Env {
   LOCATION_KV: KVNamespace;
 }
 
-export interface Service {
-  fetch(request: Request, subPath: string, env: Env): Promise<Response>;
-  path: string;
+export interface GraphQLContext {
+  id: string;
+  env: Env;
+  userDataLoader: DataLoader<string, Auth0User | null>;
+  locationDataLoader: DataLoader<string, TimedLocation | null>;
 }
+
+export type TimedLocation = {
+  latitude: number;
+  longitude: number;
+  altitude: number;
+  timestamp: number;
+};
+
+export type Auth0User = {
+  id: string;
+  email: string;
+  nickname: string;
+};

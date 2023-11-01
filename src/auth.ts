@@ -1,6 +1,6 @@
-type AuthObject = { userId: string };
-
 // "RSA256" refers to RSASSA-PKCS1-v1_5 w/ SHA256
+import { AUTH0_DOMAIN } from './constants';
+
 type JWK = {
   kty: 'RSA';
   use: 'sig';
@@ -30,7 +30,7 @@ async function verifyToken(token: string): Promise<unknown> {
 
   const jwks: JWK[] = (
     (await (
-      await fetch(new Request('https://whuapp.eu.auth0.com/.well-known/jwks.json'), {
+      await fetch(new Request(`${AUTH0_DOMAIN}/.well-known/jwks.json`), {
         cf: { cacheEverything: true },
       })
     ).json()) as any
@@ -67,7 +67,7 @@ async function verifyToken(token: string): Promise<unknown> {
   throw new Error('Invalid JWT');
 }
 
-export async function authenticateUser(headers: Headers): Promise<AuthObject> {
+export async function authenticateUser(headers: Headers) {
   const auth = headers.get('Authorization');
 
   if (!auth) {
@@ -82,5 +82,5 @@ export async function authenticateUser(headers: Headers): Promise<AuthObject> {
 
   const tokenObject = await verifyToken(token);
 
-  return { userId: (tokenObject as any).sub };
+  return { id: (tokenObject as any).sub };
 }
