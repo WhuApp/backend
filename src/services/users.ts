@@ -25,18 +25,22 @@ const schema = makeExecutableSchema<GraphQLContext>({
   resolvers: {
     Query: {
       me: (_source, _args, context) => {
-        return context.userDataLoader.load(context.id);
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        return context.userDataLoader.load(context.authCtx.id);
       },
       getUserById: (_source, { id }, context) => {
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
         return context.userDataLoader.load(id);
       },
       searchUsersByName: async (_source, { name }, context) => {
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
         return await context.userDataLoader.loadMany(await fetchUserSearch(name, context.env));
       },
     },
     Mutation: {
       deleteMe: (_source, _args, context) => {
-        return deleteAuthUser(context.id, context.env);
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        return deleteAuthUser(context.authCtx.id, context.env);
       },
     },
   },

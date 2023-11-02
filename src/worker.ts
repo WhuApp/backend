@@ -17,8 +17,9 @@ const yoga = createYoga<GraphQLContext>({
     methods: ['POST'],
   },
   batching: true,
-  plugins: [useDeferStream()],
-  graphqlEndpoint: '/query',
+  plugins: [
+    useDeferStream(),
+  ],
   landingPage: false,
   schema: stitchSchemas<GraphQLContext>({
     subschemas: [usersSchemaConfig, locationsSchemaConfig, friendsSchemaConfig],
@@ -49,18 +50,18 @@ const yoga = createYoga<GraphQLContext>({
 
 export default <ExportedHandler<Env>>{
   async fetch(request, env, ctx): Promise<Response> {
-    let authContext;
+    let authContext = undefined;
 
     // Verify auth
     try {
       authContext = await authenticateUser(request.headers);
     } catch (error: any) {
-      return new Response(error, { status: 500 });
+      authContext = null;
     }
 
     return yoga.fetch(request, {
       env: env,
-      id: authContext.id,
+      authCtx: authContext,
       userDataLoader: userDataloader(env),
       locationDataLoader: locationDataLoader(env),
     });
