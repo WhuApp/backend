@@ -64,6 +64,7 @@ export default <ExportedHandler<Env>>{
       authCtx: authContext,
       userDataLoader: userDataloader(env),
       locationDataLoader: locationDataLoader(env),
+      exectx: ctx,
     });
   },
 };

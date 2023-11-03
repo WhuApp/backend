@@ -3,6 +3,7 @@ import { deleteAuthUser, fetchUser, fetchUserSearch } from '../auth0';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { SubschemaConfig } from '@graphql-tools/delegate';
 import DataLoader from 'dataloader';
+import { loadDataLoaderStreaming } from '../streamhelper';
 
 const schema = makeExecutableSchema<GraphQLContext>({
   typeDefs: `
@@ -34,7 +35,7 @@ const schema = makeExecutableSchema<GraphQLContext>({
       },
       searchUsersByName: async (_source, { name }, context) => {
         if (!context.authCtx) throw new Error("You have to be logged in to query this");
-        return await context.userDataLoader.loadMany(await fetchUserSearch(name, context.env));
+        return loadDataLoaderStreaming(context.userDataLoader, () => fetchUserSearch(name, context.env));
       },
     },
     Mutation: {

@@ -30,6 +30,7 @@ export interface GraphQLContext {
   env: Env;
   userDataLoader: DataLoader<string, Auth0User | null>;
   locationDataLoader: DataLoader<string, TimedLocation | null>;
+  exectx: ExecutionContext,
 }
 
 export type TimedLocation = {

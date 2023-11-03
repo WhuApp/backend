@@ -1,6 +1,7 @@
 import { Env, GraphQLContext } from '../types';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { SubschemaConfig } from '@graphql-tools/delegate/typings';
+import { loadDataLoaderStreaming } from '../streamhelper';
 
 type FriendRequest = {
   from: string;
@@ -40,23 +41,20 @@ const schema = makeExecutableSchema<GraphQLContext>({
   `,
   resolvers: {
     Query: {
-      friends: async (_source, _args, context) => {
+      friends: (_source, _args, context) => {
         if (!context.authCtx) throw new Error("You have to be logged in to query this");
-        return await context.userDataLoader.loadMany(
-          (await context.env.FRIENDS_KV.get(context.authCtx.id, 'json')) ?? []
-        );
+        const id = context.authCtx!.id;
+        return loadDataLoaderStreaming(context.userDataLoader, async () => (await context.env.FRIENDS_KV.get(id, 'json')) ?? []);
       },
       incomingFriendRequests: async (_source, _args, context) => {
         if (!context.authCtx) throw new Error("You have to be logged in to query this");
-        return await context.userDataLoader.loadMany(
-          (await context.env.REQUESTS_IN_KV.get(context.authCtx.id, 'json')) ?? []
-        );
+        const id = context.authCtx!.id;
+        return loadDataLoaderStreaming(context.userDataLoader, async () => (await context.env.REQUESTS_IN_KV.get(id, 'json')) ?? []);
       },
       outgoingFriendRequests: async (_source, _args, context) => {
         if (!context.authCtx) throw new Error("You have to be logged in to query this");
-        return await context.userDataLoader.loadMany(
-          (await context.env.REQUESTS_OUT_KV.get(context.authCtx.id, 'json')) ?? []
-        );
+        const id = context.authCtx!.id;
+        return loadDataLoaderStreaming(context.userDataLoader, async () => (await context.env.REQUESTS_OUT_KV.get(id, 'json')) ?? []);
       },
     },
     Mutation: {
