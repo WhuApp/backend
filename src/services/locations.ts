@@ -30,12 +30,14 @@ const schema = makeExecutableSchema<GraphQLContext>({
   resolvers: {
     Query: {
       getLocationById: (_source, { id }, context) => {
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
         return context.locationDataLoader.load(id);
       },
     },
     Mutation: {
       setLocation: (_source, { location }, context) => {
-        return updateLocation(location, context.id, context.env);
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        return updateLocation(location, context.authCtx.id, context.env);
       },
     },
   },

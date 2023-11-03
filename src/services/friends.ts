@@ -1,6 +1,7 @@
 import { Env, GraphQLContext } from '../types';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { SubschemaConfig } from '@graphql-tools/delegate/typings';
+import { loadDataLoaderStreaming } from '../streamhelper';
 
 type FriendRequest = {
   from: string;
@@ -40,37 +41,42 @@ const schema = makeExecutableSchema<GraphQLContext>({
   `,
   resolvers: {
     Query: {
-      friends: async (_source, _args, context) => {
-        return await context.userDataLoader.loadMany(
-          (await context.env.FRIENDS_KV.get(context.id, 'json')) ?? []
-        );
+      friends: (_source, _args, context) => {
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        const id = context.authCtx!.id;
+        return loadDataLoaderStreaming(context.userDataLoader, async () => (await context.env.FRIENDS_KV.get(id, 'json')) ?? []);
       },
       incomingFriendRequests: async (_source, _args, context) => {
-        return await context.userDataLoader.loadMany(
-          (await context.env.REQUESTS_IN_KV.get(context.id, 'json')) ?? []
-        );
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        const id = context.authCtx!.id;
+        return loadDataLoaderStreaming(context.userDataLoader, async () => (await context.env.REQUESTS_IN_KV.get(id, 'json')) ?? []);
       },
       outgoingFriendRequests: async (_source, _args, context) => {
-        return await context.userDataLoader.loadMany(
-          (await context.env.REQUESTS_OUT_KV.get(context.id, 'json')) ?? []
-        );
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        const id = context.authCtx!.id;
+        return loadDataLoaderStreaming(context.userDataLoader, async () => (await context.env.REQUESTS_OUT_KV.get(id, 'json')) ?? []);
       },
     },
     Mutation: {
       sendFriendRequest: ({ to }, _args, context) => {
-        return sendRequest({ to: to, from: context.id }, context.env);
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        return sendRequest({ to: to, from: context.authCtx.id }, context.env);
       },
       acceptFriendRequest: ({ to }, _args, context) => {
-        return acceptRequest({ to: to, from: context.id }, context.env);
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        return acceptRequest({ to: to, from: context.authCtx.id }, context.env);
       },
       ignoreFriendRequest: ({ to }, _args, context) => {
-        return ignoreRequest({ to: to, from: context.id }, context.env);
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        return ignoreRequest({ to: to, from: context.authCtx.id }, context.env);
       },
       cancelFriendRequest: ({ to }, _args, context) => {
-        return cancelRequest({ to: to, from: context.id }, context.env);
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        return cancelRequest({ to: to, from: context.authCtx.id }, context.env);
       },
       removeFriend: ({ to }, _args, context) => {
-        return removeFriend({ to: to, from: context.id }, context.env);
+        if (!context.authCtx) throw new Error("You have to be logged in to query this");
+        return removeFriend({ to: to, from: context.authCtx.id }, context.env);
       },
     },
   },

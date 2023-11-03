@@ -26,10 +26,11 @@ export interface Env {
 }
 
 export interface GraphQLContext {
-  id: string;
+  authCtx: { id : string } | null,
   env: Env;
   userDataLoader: DataLoader<string, Auth0User | null>;
   locationDataLoader: DataLoader<string, TimedLocation | null>;
+  exectx: ExecutionContext,
 }
 
 export type TimedLocation = {
